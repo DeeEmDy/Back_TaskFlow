@@ -25,7 +25,7 @@ public class WebConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true); //Aceptar todas las credenciales.
-        config.addAllowedOrigin("http://localhost:3000/"); //Permisos para la URL del servidor del FrontEnd-React
+        config.addAllowedOrigin("http://localhost:5173/"); //Permisos para la URL del servidor del FrontEnd-React
         //Configuración de datos que contendrá el header de la solicitud HTTP, en ella se envía el JWT Token.
         config.setAllowedHeaders(Arrays.asList(
                 HttpHeaders.AUTHORIZATION,
