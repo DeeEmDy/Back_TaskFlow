@@ -1,5 +1,7 @@
 package com.taskflow.backend.dto;
 
+import com.taskflow.backend.entities.Image;
+import com.taskflow.backend.entities.Rol;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,16 +11,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Data
-
-//Creacion de usuario DTO para la creacion del JSON del registro de usuario y sus endpoints.
 public class UserDto {
 
-    private Long id;
+    private int id;
     private String name;
-    private String first_surname;
-    private String second_surname;
-    private String id_card; //Cedula.
-    private String phone_number;
+    private String firstSurname;
+    private String secondSurname;
+    private String idCard; // Cédula
+    private String phoneNumber;
     private String email;
+    private Image idImage;
+    private Rol idRol;
+    private Boolean status;
     private String token;
 }

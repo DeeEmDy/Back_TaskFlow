@@ -10,8 +10,11 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
-    UserDto toUserDto(User user);
+    @Mapping(source = "idImage", target = "idImage")
+    @Mapping(source = "idRol", target = "idRol")
+    @Mapping(target = "password", ignore = true) // La contraseña se maneja por separado
+    User signUpToUser(SignUpDto signUpDto);
 
-    @Mapping(target = "password", ignore = true) //Acá se ignora el campo de la contraseña, ya que va hasheada y no será la misma.
-    User signUpToUser(SignUpDto userDto);
+    UserDto toUserDto(User user);
 }
+

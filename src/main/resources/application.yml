@@ -1,9 +1,9 @@
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/bdtaskflow_fundaweb
-    username: DeeEmDy
-    password: 5of1a&Dyl4n4Ever.
+    url: jdbc:postgresql://localhost:5432/bdTaskFlow_PW
+    username: DylanAriasD
+    password: Lolaso0709rico2001.
 
   sql:
     init:

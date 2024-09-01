@@ -1,57 +1,66 @@
 package com.taskflow.backend.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import java.util.Date;
+import lombok.*;
 
+import java.time.Instant;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Data
 
+@Getter
+@Setter
+@Entity
 @Table(name = "tbuser")
-public class User {
 
+public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) //Para indicarle que el ID es autoincrementable a nivel de base de datos.
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tbuser_id_gen")
+    @SequenceGenerator(name = "tbuser_id_gen", sequenceName = "tbuser_id_user_seq", allocationSize = 1)
+    @Column(name = "id_user", nullable = false)
+    private Integer id;
 
     @Column(name = "name")
     private String name;
 
     @Column(name = "first_surname")
-    private String first_surname;
+    private String firstSurname;
 
     @Column(name = "second_surname")
-    private String second_surname;
+    private String secondSurname;
 
     @Column(name = "id_card")
-    private String id_card;
+    private String idCard;
 
     @Column(name = "phone_number")
-    private String phone_number;
+    private String phoneNumber;
 
-    @Column(name = "id_image")
-    private int id_image;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_image")
+    private Image idImage;
 
-    //@Column(name = "email")
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_rol")
+    private Rol idRol;
+
+    @Column(name = "email")
     private String email;
 
-    //@Column(name = "password")
-    @Column(nullable = false)
+    @Column(name = "password")
     private String password;
 
     @Column(name = "user_verified")
-    private boolean user_verified;
+    private Boolean userVerified;
 
     @Column(name = "status")
-    private boolean status;      //Estado del registro de usuario:  0:Inactivo           1:Activo         pddt: Para manejar borrados logicos.
+    private Boolean status;
 
-    @Column(name = "expiration_date")
-    private Date expiration_date;
+    @Column(name = "created_at")
+    private Instant createdAt;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
 }
