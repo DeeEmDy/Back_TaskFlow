@@ -20,6 +20,6 @@ public class SignUpDto {
     private Rol idRol;
     private String email;
     private String password;
-    private Boolean userVerified;
-    private Boolean status = true;
+    private boolean userVerified;
+    private boolean status;
 }

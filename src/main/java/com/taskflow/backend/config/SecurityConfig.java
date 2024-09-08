@@ -33,7 +33,7 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
 
         http
-                .cors(cors -> cors.configurationSource(source)) // Uso de la configuración del CORS de SpringBoot por defecto.
+                .cors(cors -> cors.configurationSource(source))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(userAuthenticationEntryPoint)
                 )
@@ -44,7 +44,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/login", "/register").permitAll()
                         .anyRequest().authenticated()
                 );
-
         return http.build();
     }
 }

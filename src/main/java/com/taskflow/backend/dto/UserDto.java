@@ -22,6 +22,7 @@ public class UserDto {
     private String email;
     private Image idImage;
     private Rol idRol;
+    private boolean userVerified;
     private Boolean status;
     private String token;
 }
