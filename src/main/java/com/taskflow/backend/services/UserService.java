@@ -63,11 +63,11 @@ public class UserService {
         user.setStatus(true); // Establecer el estado como activo
 
         // Verificar y establecer objetos Image y Rol si no son null
-        if (signUpDto.getId_image() != null) {
-            user.setIdImage(signUpDto.getId_image());
+        if (signUpDto.getIdImage() != null) {
+            user.setIdImage(signUpDto.getIdImage());
         }
-        if (signUpDto.getId_rol() != null) {
-            user.setIdRol(signUpDto.getId_rol());
+        if (signUpDto.getIdRol() != null) {
+            user.setIdRol(signUpDto.getIdRol());
         }
 
         // Guardar el usuario en la base de datos

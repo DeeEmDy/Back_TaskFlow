@@ -1,18 +1,20 @@
 package com.taskflow.backend.controllers;
 
-import com.taskflow.backend.config.UserAuthProvider;
-import com.taskflow.backend.dto.CredentialsDto;
-import com.taskflow.backend.dto.SignUpDto;
-import com.taskflow.backend.dto.UserDto;
-import com.taskflow.backend.services.UserService;
-import lombok.RequiredArgsConstructor;
+import java.net.URI;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URI;
+import com.taskflow.backend.config.UserAuthProvider;
+import com.taskflow.backend.dto.CredentialsDto;
+import com.taskflow.backend.dto.SignUpDto;
+import com.taskflow.backend.dto.UserDto;
+import com.taskflow.backend.services.UserService;
+
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @RestController
@@ -20,7 +22,7 @@ public class AuthController {
 
     private final UserService userService;
     private final UserAuthProvider userAuthProvider;
-
+    
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody CredentialsDto credentialsDto) {
         try {
