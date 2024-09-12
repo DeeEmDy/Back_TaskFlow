@@ -45,11 +45,13 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<UserDto> register(@RequestBody SignUpDto signUpDto) {
+        System.out.println("Registering user: " + signUpDto.getEmail());
         try {
             UserDto user = userService.register(signUpDto);
-            // No se genera token durante el registro
+            System.out.println("User registered successfully: " + user.getEmail());
             return ResponseEntity.created(URI.create("/users/" + user.getId())).body(user);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null); // Respond without body
         }
     }

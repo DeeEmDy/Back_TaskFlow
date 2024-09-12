@@ -35,7 +35,7 @@ public class UserService implements UserDetailsService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
-    public UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(@SuppressWarnings("null") @NonNull String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
@@ -72,18 +72,19 @@ public class UserService implements UserDetailsService {
     }
 
     public UserDto register(@NonNull SignUpDto signUpDto) {
+        // Logging para verificar el estado del nuevo usuario antes de guardarlo
+        System.out.println("Nuevo usuario antes de guardarlo: " + signUpDto.toString());
+    
         Optional<User> existingUser = userRepository.findByEmail(signUpDto.getEmail());
-
         if (existingUser.isPresent()) {
             throw new UserAlreadyExistsException("User already exists with email: " + signUpDto.getEmail());
         }
-
-        // Buscar imagen y rol por ID
+    
         Image image = imageRepository.findById(signUpDto.getIdImage())
                 .orElseThrow(() -> new RuntimeException("Image not found"));
         Rol rol = rolRepository.findById(signUpDto.getIdRol())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
-
+    
         User newUser = new User();
         newUser.setName(signUpDto.getName());
         newUser.setFirstSurname(signUpDto.getFirstSurname());
@@ -93,14 +94,20 @@ public class UserService implements UserDetailsService {
         newUser.setIdImage(image);
         newUser.setRole(rol);
         newUser.setEmail(signUpDto.getEmail());
-        newUser.setPassword(passwordEncoder.encode(signUpDto.getPassword())); // Hash the password before saving it
-        newUser.setUserVerified(signUpDto.isUserVerified());
-        newUser.setStatus(signUpDto.isStatus());
+        newUser.setPassword(passwordEncoder.encode(signUpDto.getPassword()));
+        newUser.setUserVerified(signUpDto.getUserVerified());
+        newUser.setStatus(signUpDto.getStatus());
         newUser.setCreatedAt(Instant.now());
         newUser.setUpdatedAt(Instant.now());
-
+    
+        // Verifica que el id sea null en este punto
+        System.out.println("ID del usuario antes de guardarlo: " + newUser.getId());
+    
         userRepository.save(newUser);
-
+    
+        //Mostrar el id del usuario después de guardarlo para verificar que se haya guardado correctamente.
+        System.out.println("Nuevo usuario guardado con ID: " + newUser.getId());
+    
         return UserDto.builder()
                 .id(newUser.getId())
                 .name(newUser.getName())
@@ -109,14 +116,15 @@ public class UserService implements UserDetailsService {
                 .idCard(newUser.getIdCard())
                 .phoneNumber(newUser.getPhoneNumber())
                 .email(newUser.getEmail())
-                .idImage(newUser.getIdImage().getId()) // ID de la imagen
-                .roles(Collections.singletonList(newUser.getRole().getRolName())) // Nombre del rol
+                .idImage(newUser.getIdImage().getId())
+                .roles(Collections.singletonList(newUser.getRole().getRolName()))
                 .userVerified(newUser.getUserVerified())
                 .status(newUser.getStatus())
                 .createdAt(newUser.getCreatedAt())
                 .updatedAt(newUser.getUpdatedAt())
                 .build();
     }
+    
 
     public UserDto findByEmail(@NonNull String email) {
         User user = userRepository.findByEmail(email)

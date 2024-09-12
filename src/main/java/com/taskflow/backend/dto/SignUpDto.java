@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 public class SignUpDto {
 
-    private int id;
+    private Integer id;
     private String name;
     private String firstSurname;
     private String secondSurname;
@@ -19,6 +19,6 @@ public class SignUpDto {
     private Integer idRol; // ID del rol
     private String email;
     private String password;
-    private boolean userVerified;
-    private boolean status;
+    private Boolean  userVerified;
+    private Boolean  status;
 }
