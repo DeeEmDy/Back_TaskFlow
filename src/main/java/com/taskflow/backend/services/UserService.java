@@ -70,23 +70,24 @@ public class UserService implements UserDetailsService {
                 .build();
     }
 
-    public UserDto register(@NonNull SignUpDto signUpDto) {
+    // Cambia la firma del método y el tipo de retorno de UserDto a User
+    public User register(@NonNull SignUpDto signUpDto) {
         // Verificar si el usuario ya existe
         if (userRepository.findByEmail(signUpDto.getEmail()).isPresent()) {
             throw new UserAlreadyExistsException("User already exists with email: " + signUpDto.getEmail());
         }
-    
+
         // Verificar que los IDs de imagen y rol no sean nulos
         if (signUpDto.getIdImage() == null || signUpDto.getIdRol() == null) {
             throw new IllegalArgumentException("Image ID and Role ID must not be null");
         }
-    
+
         // Encontrar imagen y rol asociados
         Image image = imageRepository.findById(signUpDto.getIdImage())
                 .orElseThrow(() -> new RuntimeException("Image not found"));
         Rol rol = rolRepository.findById(signUpDto.getIdRol())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
-    
+
         // Crear nuevo usuario
         User newUser = User.builder()
                 .name(signUpDto.getName())
@@ -103,27 +104,10 @@ public class UserService implements UserDetailsService {
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
-    
+
         // Guardar el usuario en la base de datos
-        User savedUser = userRepository.save(newUser);
-    
-        // Devolver el DTO del usuario registrado
-        return UserDto.builder()
-                .id(savedUser.getId())
-                .name(savedUser.getName())
-                .firstSurname(savedUser.getFirstSurname())
-                .secondSurname(savedUser.getSecondSurname())
-                .idCard(savedUser.getIdCard())
-                .phoneNumber(savedUser.getPhoneNumber())
-                .idImage(savedUser.getIdImage().getId())
-                .role(savedUser.getRole().getRolName())
-                .email(savedUser.getEmail())
-                .userVerified(savedUser.getUserVerified())
-                .status(savedUser.getStatus())
-                .createdAt(savedUser.getCreatedAt())
-                .updatedAt(savedUser.getUpdatedAt())
-                .build();
-    }    
+        return userRepository.save(newUser);
+    }
 
     public UserDto findByEmail(@NonNull String email) {
         User user = userRepository.findByEmail(email)

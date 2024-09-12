@@ -14,6 +14,7 @@ import com.taskflow.backend.dto.AuthResponseDto;
 import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
+import com.taskflow.backend.entities.User;
 import com.taskflow.backend.services.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -39,10 +40,12 @@ public class AuthController {
                 .build());
     }
     // Endpoint para registrar un nuevo usuario
+    // Cambia la firma del método y el tipo de retorno de ResponseEntity<UserDto> a ResponseEntity<User>
+
     @PostMapping("/register")
-    public ResponseEntity<UserDto> register(@RequestBody SignUpDto signUpDto) {
+    public ResponseEntity<User> register(@RequestBody SignUpDto signUpDto) {
         // Lógica para registrar un usuario
-        UserDto newUser = userService.register(signUpDto);
+        User newUser = userService.register(signUpDto);
         return ResponseEntity.ok(newUser);
     }
 
