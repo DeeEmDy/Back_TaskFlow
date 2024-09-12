@@ -2,7 +2,6 @@ package com.taskflow.backend.services;
 
 import java.time.Instant;
 import java.util.Collections;
-import java.util.Optional;
 
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,12 +15,12 @@ import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.entities.Image;
-import com.taskflow.backend.entities.Rol; // Ajuste aquí
-import com.taskflow.backend.entities.User;
+import com.taskflow.backend.entities.Rol;
+import com.taskflow.backend.entities.User; // Ajuste aquí
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.repositories.ImageRepository;
-import com.taskflow.backend.repositories.RolRepository; // Ajuste aquí
-import com.taskflow.backend.repositories.UserRepository;
+import com.taskflow.backend.repositories.RolRepository;
+import com.taskflow.backend.repositories.UserRepository; // Ajuste aquí
 
 import lombok.RequiredArgsConstructor;
 
@@ -72,65 +71,65 @@ public class UserService implements UserDetailsService {
     }
 
     public UserDto register(@NonNull SignUpDto signUpDto) {
-        // Logging para verificar el estado del nuevo usuario antes de guardarlo
-        System.out.println("Nuevo usuario antes de guardarlo: " + signUpDto.toString());
-    
-        Optional<User> existingUser = userRepository.findByEmail(signUpDto.getEmail());
-        if (existingUser.isPresent()) {
+        // Verificar si el usuario ya existe
+        if (userRepository.findByEmail(signUpDto.getEmail()).isPresent()) {
             throw new UserAlreadyExistsException("User already exists with email: " + signUpDto.getEmail());
         }
     
+        // Verificar que los IDs de imagen y rol no sean nulos
+        if (signUpDto.getIdImage() == null || signUpDto.getIdRol() == null) {
+            throw new IllegalArgumentException("Image ID and Role ID must not be null");
+        }
+    
+        // Encontrar imagen y rol asociados
         Image image = imageRepository.findById(signUpDto.getIdImage())
                 .orElseThrow(() -> new RuntimeException("Image not found"));
         Rol rol = rolRepository.findById(signUpDto.getIdRol())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
     
-        User newUser = new User();
-        newUser.setName(signUpDto.getName());
-        newUser.setFirstSurname(signUpDto.getFirstSurname());
-        newUser.setSecondSurname(signUpDto.getSecondSurname());
-        newUser.setIdCard(signUpDto.getIdCard());
-        newUser.setPhoneNumber(signUpDto.getPhoneNumber());
-        newUser.setIdImage(image);
-        newUser.setRole(rol);
-        newUser.setEmail(signUpDto.getEmail());
-        newUser.setPassword(passwordEncoder.encode(signUpDto.getPassword()));
-        newUser.setUserVerified(signUpDto.getUserVerified());
-        newUser.setStatus(signUpDto.getStatus());
-        newUser.setCreatedAt(Instant.now());
-        newUser.setUpdatedAt(Instant.now());
-    
-        // Verifica que el id sea null en este punto
-        System.out.println("ID del usuario antes de guardarlo: " + newUser.getId());
-    
-        userRepository.save(newUser);
-    
-        //Mostrar el id del usuario después de guardarlo para verificar que se haya guardado correctamente.
-        System.out.println("Nuevo usuario guardado con ID: " + newUser.getId());
-    
-        return UserDto.builder()
-                .id(newUser.getId())
-                .name(newUser.getName())
-                .firstSurname(newUser.getFirstSurname())
-                .secondSurname(newUser.getSecondSurname())
-                .idCard(newUser.getIdCard())
-                .phoneNumber(newUser.getPhoneNumber())
-                .email(newUser.getEmail())
-                .idImage(newUser.getIdImage().getId())
-                .roles(Collections.singletonList(newUser.getRole().getRolName()))
-                .userVerified(newUser.getUserVerified())
-                .status(newUser.getStatus())
-                .createdAt(newUser.getCreatedAt())
-                .updatedAt(newUser.getUpdatedAt())
+        // Crear nuevo usuario
+        User newUser = User.builder()
+                .name(signUpDto.getName())
+                .firstSurname(signUpDto.getFirstSurname())
+                .secondSurname(signUpDto.getSecondSurname())
+                .idCard(signUpDto.getIdCard())
+                .phoneNumber(signUpDto.getPhoneNumber())
+                .idImage(image)
+                .role(rol)
+                .email(signUpDto.getEmail())
+                .password(passwordEncoder.encode(signUpDto.getPassword()))
+                .userVerified(signUpDto.getUserVerified())
+                .status(signUpDto.getStatus())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
-    }
     
+        // Guardar el usuario en la base de datos
+        User savedUser = userRepository.save(newUser);
+    
+        // Devolver el DTO del usuario registrado
+        return UserDto.builder()
+                .id(savedUser.getId())
+                .name(savedUser.getName())
+                .firstSurname(savedUser.getFirstSurname())
+                .secondSurname(savedUser.getSecondSurname())
+                .idCard(savedUser.getIdCard())
+                .phoneNumber(savedUser.getPhoneNumber())
+                .idImage(savedUser.getIdImage().getId())
+                .role(savedUser.getRole().getRolName())
+                .email(savedUser.getEmail())
+                .userVerified(savedUser.getUserVerified())
+                .status(savedUser.getStatus())
+                .createdAt(savedUser.getCreatedAt())
+                .updatedAt(savedUser.getUpdatedAt())
+                .build();
+    }    
 
     public UserDto findByEmail(@NonNull String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        String roleName = user.getRole() != null ? user.getRole().getRolName() : "USER"; // Default role if null
+        String roleName = user.getRole() != null ? user.getRole().getRolName() : "NORMUSER"; // Default role if null
 
         return UserDto.builder()
                 .id(user.getId())

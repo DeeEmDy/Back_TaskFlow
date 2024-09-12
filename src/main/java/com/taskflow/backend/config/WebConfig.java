@@ -1,4 +1,4 @@
-package com.taskflow.backend.config;
+/*package com.taskflow.backend.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
@@ -17,3 +17,4 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowCredentials(true);
     }
 }
+*/

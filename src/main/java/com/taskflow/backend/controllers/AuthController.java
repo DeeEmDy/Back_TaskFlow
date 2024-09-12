@@ -1,12 +1,12 @@
 package com.taskflow.backend.controllers;
 
-import java.net.URI;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.taskflow.backend.config.UserAuthProvider;
@@ -20,42 +20,33 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @RestController
+@RequestMapping("/auth") // Prefijo común para todos los endpoints de este controlador.
 public class AuthController {
 
     private final UserService userService;
     private final UserAuthProvider userAuthProvider;
 
+    // Endpoint para login
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDto> login(@RequestBody CredentialsDto credentialsDto) {
-        try {
-            UserDto user = userService.login(credentialsDto);
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null); // Respond without body
-            }
-            String token = userAuthProvider.createToken(user.getEmail());
-            AuthResponseDto response = AuthResponseDto.builder()
-                    .token(token)
-                    .user(user)
-                    .build();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null); // Respond without body
-        }
-    }
+        // Lógica para autenticar el usuario y devolver el token
+        UserDto user = userService.login(credentialsDto);
+        String token = userAuthProvider.createToken(user.getEmail());
 
+        return ResponseEntity.ok(AuthResponseDto.builder()
+                .token(token)
+                .user(user)
+                .build());
+    }
+    // Endpoint para registrar un nuevo usuario
     @PostMapping("/register")
     public ResponseEntity<UserDto> register(@RequestBody SignUpDto signUpDto) {
-        System.out.println("Registering user: " + signUpDto.getEmail());
-        try {
-            UserDto user = userService.register(signUpDto);
-            System.out.println("User registered successfully: " + user.getEmail());
-            return ResponseEntity.created(URI.create("/users/" + user.getId())).body(user);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null); // Respond without body
-        }
+        // Lógica para registrar un usuario
+        UserDto newUser = userService.register(signUpDto);
+        return ResponseEntity.ok(newUser);
     }
 
+    // Endpoint para refrescar el token de autenticación
     @PostMapping("/refresh-token")
     public ResponseEntity<AuthResponseDto> refreshToken(@RequestBody String refreshToken) {
         try {
@@ -72,5 +63,13 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null); // Respond without body
         }
+    }
+
+    // Endpoint para obtener información del usuario autenticado
+    @GetMapping("/me")
+    public ResponseEntity<UserDto> getCurrentUser(Authentication authentication) {
+        String email = authentication.getName(); // El email del usuario autenticado
+        UserDto user = userService.findByEmail(email);
+        return ResponseEntity.ok(user);
     }
 }

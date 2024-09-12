@@ -23,12 +23,11 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         // Configuración de CORS
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:5173"); // URL comunicación FrontEnd
+        config.addAllowedOrigin("http://localhost:5173"); // URL del Frontend
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         source.registerCorsConfiguration("/**", config);
@@ -37,20 +36,21 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(source))
             .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint(userAuthenticationEntryPoint)
-            )
+                .authenticationEntryPoint(userAuthenticationEntryPoint))
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .csrf(csrf -> csrf
-                .disable() // Deshabilitar CSRF ya que estamos usando JWT
-            )
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .csrf(csrf -> csrf.disable()) // Deshabilitar CSRF ya que estamos usando JWT
             .authorizeHttpRequests(requests -> requests
-                .requestMatchers(HttpMethod.POST, "/login", "/register").permitAll() // Permitir acceso sin autenticación a login y register
-                .requestMatchers(HttpMethod.GET, "/public/**").permitAll() // Ejemplo: permitir acceso sin autenticación a rutas públicas
-                .anyRequest().authenticated() // Requerir autenticación para cualquier otra solicitud
-            )
-            .addFilterBefore(new UserAuthFilter(userAuthProvider), UsernamePasswordAuthenticationFilter.class); // Agregar filtro de autenticación
+                // Rutas públicas, disponibles para todos
+                .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
+                // Rutas protegidas solo para ADMIN
+                .requestMatchers("/admin/**").hasAuthority("ADMIN")
+                // Rutas protegidas solo para NORMUSER
+                .requestMatchers("/user/**").hasAuthority("NORMUSER")
+                // Todas las demás rutas requieren autenticación
+                .anyRequest().authenticated())
+            .addFilterBefore(new UserAuthFilter(userAuthProvider), UsernamePasswordAuthenticationFilter.class); // Filtro de autenticación
 
         return http.build();
     }
