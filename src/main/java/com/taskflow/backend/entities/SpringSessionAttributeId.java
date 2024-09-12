@@ -1,12 +1,13 @@
 package com.taskflow.backend.entities;
 
+import java.util.Objects;
+
+import org.hibernate.Hibernate;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.Hibernate;
-
-import java.util.Objects;
 
 @Getter
 @Setter

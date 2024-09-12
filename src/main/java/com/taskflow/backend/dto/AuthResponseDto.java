@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Data
-public class CredentialsDto {
+public class AuthResponseDto {
 
-    private String email;
-    private String password;
+    private String token; // Token de autenticación
+    private UserDto user; // Datos del usuario
 }

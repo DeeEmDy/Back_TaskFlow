@@ -1,10 +1,16 @@
 package com.taskflow.backend.entities;
 
-import jakarta.persistence.*;
+import java.time.Instant;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.Instant;
 
 @Getter
 @Setter
@@ -17,7 +23,7 @@ public class Rol {
     @Column(name = "idrol", nullable = false)
     private Integer id;
 
-    @Column(name = "rol_name")
+    @Column(name = "rol_name") //ROL#1: ADMIN, ROL#2: NORMUSER
     private String rolName;
 
     @Column(name = "status")

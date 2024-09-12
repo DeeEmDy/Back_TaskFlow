@@ -1,7 +1,8 @@
 package com.taskflow.backend.dto;
 
-import com.taskflow.backend.entities.Image;
-import com.taskflow.backend.entities.Rol;
+import java.time.Instant;
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,16 +14,18 @@ import lombok.NoArgsConstructor;
 @Data
 public class UserDto {
 
-    private int id;
+    private Integer id;
     private String name;
     private String firstSurname;
     private String secondSurname;
-    private String idCard; // Cédula
+    private String idCard;
     private String phoneNumber;
+    private Integer idImage; // ID de la imagen
+    private String role; // Nombre del rol
     private String email;
-    private Image idImage;
-    private Rol idRol;
-    private boolean userVerified;
+    private List<String> roles; // Lista de roles si tienes múltiples roles
+    private Boolean userVerified;
     private Boolean status;
-    private String token;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

@@ -1,7 +1,5 @@
 package com.taskflow.backend.dto;
 
-import com.taskflow.backend.entities.Image;
-import com.taskflow.backend.entities.Rol;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,13 +9,14 @@ import lombok.NoArgsConstructor;
 @Data
 public class SignUpDto {
 
+    private int id;
     private String name;
     private String firstSurname;
     private String secondSurname;
     private String idCard;
     private String phoneNumber;
-    private Image idImage;
-    private Rol idRol;
+    private Integer idImage; // ID de la imagen
+    private Integer idRol; // ID del rol
     private String email;
     private String password;
     private boolean userVerified;

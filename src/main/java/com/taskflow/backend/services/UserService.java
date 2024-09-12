@@ -1,80 +1,143 @@
 package com.taskflow.backend.services;
 
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Optional;
+
+import org.springframework.lang.NonNull;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
+import com.taskflow.backend.entities.Image;
+import com.taskflow.backend.entities.Rol; // Ajuste aquí
 import com.taskflow.backend.entities.User;
-import com.taskflow.backend.exception.AppException;
-import com.taskflow.backend.mappers.UserMapper;
+import com.taskflow.backend.exception.UserAlreadyExistsException;
+import com.taskflow.backend.repositories.ImageRepository;
+import com.taskflow.backend.repositories.RolRepository; // Ajuste aquí
 import com.taskflow.backend.repositories.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
-import java.nio.CharBuffer;
-import java.time.Instant;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
-    private final UserMapper userMapper;
-    private final PasswordEncoder passwordEncoder; //Para poder hashear la contraseña y que se almacene en base de datos de manera inleible.
+    private final RolRepository rolRepository; // Ajuste aquí
+    private final ImageRepository imageRepository;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public UserDto findByLogin(String email){
-
+    @Override
+    public UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException("Usuario desconocido!", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        return  userMapper.toUserDto(user); //Mediante el mapper convertir a nuestro usuario en un objeto DTO para convertir el JSON.
+        String roleName = user.getRole() != null ? user.getRole().getRolName() : "USER"; // Default role if null
+
+        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(),
+                Collections.singletonList(new SimpleGrantedAuthority(roleName)));
     }
 
-    public UserDto login(CredentialsDto credentialsDto) {
-            User user = userRepository.findByEmail(credentialsDto.getEmail())
-                    .orElseThrow(() -> new AppException("Usuario desconocido!", HttpStatus.NOT_FOUND));
+    public UserDto login(@NonNull CredentialsDto credentialsDto) {
+        User user = userRepository.findByEmail(credentialsDto.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + credentialsDto.getEmail()));
 
-            if(passwordEncoder.matches(CharBuffer.wrap(credentialsDto.getPassword()), user.getPassword())) {
-                return  userMapper.toUserDto(user);
-            }
+        // Compare the provided password with the stored password
+        if (!passwordEncoder.matches(credentialsDto.getPassword(), user.getPassword())) {
+            throw new UsernameNotFoundException("Invalid password");
+        }
 
-            throw new AppException("Contraseña Inválida", HttpStatus.BAD_REQUEST);
+        String roleName = user.getRole() != null ? user.getRole().getRolName() : "USER"; // Default role if null
+
+        return UserDto.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .firstSurname(user.getFirstSurname())
+                .secondSurname(user.getSecondSurname())
+                .idCard(user.getIdCard())
+                .phoneNumber(user.getPhoneNumber())
+                .email(user.getEmail())
+                .idImage(user.getIdImage() != null ? user.getIdImage().getId() : null)
+                .roles(Collections.singletonList(roleName)) // Wrap role name in a list
+                .userVerified(user.getUserVerified())
+                .status(user.getStatus())
+                .build();
     }
 
+    public UserDto register(@NonNull SignUpDto signUpDto) {
+        Optional<User> existingUser = userRepository.findByEmail(signUpDto.getEmail());
 
-    //-----------------------------Registro de usuario--------------------------//
-    public UserDto register(SignUpDto signUpDto) {
-        // Verificar si el usuario ya existe
-        Optional<User> optionalUser = userRepository.findByEmail(signUpDto.getEmail());
-
-        if (optionalUser.isPresent()) {
-            throw new AppException("¡Ese usuario ya existe!", HttpStatus.BAD_REQUEST);
+        if (existingUser.isPresent()) {
+            throw new UserAlreadyExistsException("User already exists with email: " + signUpDto.getEmail());
         }
 
-        // Convertir el SignUpDto a User usando el mapper
-        User user = userMapper.signUpToUser(signUpDto);
+        // Buscar imagen y rol por ID
+        Image image = imageRepository.findById(signUpDto.getIdImage())
+                .orElseThrow(() -> new RuntimeException("Image not found"));
+        Rol rol = rolRepository.findById(signUpDto.getIdRol())
+                .orElseThrow(() -> new RuntimeException("Role not found"));
 
-        // Establecer campos adicionales
-        user.setPassword(passwordEncoder.encode(signUpDto.getPassword())); // Codificar la contraseña
-        user.setCreatedAt(Instant.now());
-        user.setUpdatedAt(Instant.now());
-        user.setStatus(true); // Establecer el estado como activo
+        User newUser = new User();
+        newUser.setName(signUpDto.getName());
+        newUser.setFirstSurname(signUpDto.getFirstSurname());
+        newUser.setSecondSurname(signUpDto.getSecondSurname());
+        newUser.setIdCard(signUpDto.getIdCard());
+        newUser.setPhoneNumber(signUpDto.getPhoneNumber());
+        newUser.setIdImage(image);
+        newUser.setRole(rol);
+        newUser.setEmail(signUpDto.getEmail());
+        newUser.setPassword(passwordEncoder.encode(signUpDto.getPassword())); // Hash the password before saving it
+        newUser.setUserVerified(signUpDto.isUserVerified());
+        newUser.setStatus(signUpDto.isStatus());
+        newUser.setCreatedAt(Instant.now());
+        newUser.setUpdatedAt(Instant.now());
 
-        // Verificar y establecer objetos Image y Rol si no son null
-        if (signUpDto.getIdImage() != null) {
-            user.setIdImage(signUpDto.getIdImage());
-        }
-        if (signUpDto.getIdRol() != null) {
-            user.setIdRol(signUpDto.getIdRol());
-        }
+        userRepository.save(newUser);
 
-        // Guardar el usuario en la base de datos
-        User savedUser = userRepository.save(user);
-
-        // Convertir el usuario guardado a DTO y devolverlo
-        return userMapper.toUserDto(savedUser);
+        return UserDto.builder()
+                .id(newUser.getId())
+                .name(newUser.getName())
+                .firstSurname(newUser.getFirstSurname())
+                .secondSurname(newUser.getSecondSurname())
+                .idCard(newUser.getIdCard())
+                .phoneNumber(newUser.getPhoneNumber())
+                .email(newUser.getEmail())
+                .idImage(newUser.getIdImage().getId()) // ID de la imagen
+                .roles(Collections.singletonList(newUser.getRole().getRolName())) // Nombre del rol
+                .userVerified(newUser.getUserVerified())
+                .status(newUser.getStatus())
+                .createdAt(newUser.getCreatedAt())
+                .updatedAt(newUser.getUpdatedAt())
+                .build();
     }
 
+    public UserDto findByEmail(@NonNull String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        String roleName = user.getRole() != null ? user.getRole().getRolName() : "USER"; // Default role if null
+
+        return UserDto.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .firstSurname(user.getFirstSurname())
+                .secondSurname(user.getSecondSurname())
+                .idCard(user.getIdCard())
+                .phoneNumber(user.getPhoneNumber())
+                .email(user.getEmail())
+                .idImage(user.getIdImage() != null ? user.getIdImage().getId() : null)
+                .roles(Collections.singletonList(roleName)) // Wrap role name in a list
+                .userVerified(user.getUserVerified())
+                .status(user.getStatus())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
 }
