@@ -15,4 +15,6 @@ public interface UserRepository extends JpaRepository <User, Integer> {
     boolean existsByIdCard(String idCard); //Para verificar si la cédula ya existe
 
     boolean existsByPhoneNumber(String phoneNumber); //Para verificar si el número de teléfono ya existe
+
+    User findByActivationToken(String token); // Agregado para buscar por token de activación
 }

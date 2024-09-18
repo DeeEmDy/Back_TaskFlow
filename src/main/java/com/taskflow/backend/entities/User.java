@@ -77,4 +77,10 @@ public class User {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "activation_token")
+    private String activationToken;
+
+    @Column(name = "activation_token_expiration")
+    private Instant activationTokenExpiration;
+
 }

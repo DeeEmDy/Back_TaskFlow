@@ -32,6 +32,8 @@ public class UserService implements UserDetailsService {
     private final RolRepository rolRepository; // Ajuste aquí
     private final ImageRepository imageRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final TokenService tokenService; // Ajuste aquí
+    private final EmailService emailService; // Ajuste aquí
 
     @Override
     public UserDetails loadUserByUsername(@SuppressWarnings("null") @NonNull String email) throws UsernameNotFoundException {
@@ -109,14 +111,28 @@ public class UserService implements UserDetailsService {
                 .role(rol)
                 .email(signUpDto.getEmail())
                 .password(passwordEncoder.encode(signUpDto.getPassword()))
-                .userVerified(signUpDto.getUserVerified())
+                .userVerified(false) // El usuario no está verificado inicialmente
                 .status(signUpDto.getStatus())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
 
-        // Guardar el usuario en la base de datos
-        return userRepository.save(newUser);
+// Guardar el usuario en la base de datos
+        User savedUser = userRepository.save(newUser);
+
+// Generar y enviar el correo de activación
+        String activationToken = tokenService.generateActivationToken();
+        Instant tokenExpiration = tokenService.getTokenExpiration();
+
+        savedUser.setActivationToken(activationToken); // Asegúrate de que el método existe
+        savedUser.setActivationTokenExpiration(tokenExpiration); // Asegúrate de que el método existe
+
+        userRepository.save(savedUser);
+
+        String activationLink = "http://localhost:8080/auth/activate?token=" + activationToken;
+        emailService.sendActivationEmail(savedUser.getEmail(), activationLink);
+
+        return savedUser;
     }
 
     public UserDto findByEmail(@NonNull String email) {
@@ -141,4 +157,17 @@ public class UserService implements UserDetailsService {
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
+
+    public boolean activateUser(String token) {
+        User user = userRepository.findByActivationToken(token); // Asegúrate de que el método existe
+        if (user != null && user.getActivationTokenExpiration().isAfter(Instant.now())) {
+            user.setUserVerified(true);
+            user.setActivationToken(null); // Asegúrate de que el método existe
+            user.setActivationTokenExpiration(null); // Asegúrate de que el método existe
+            userRepository.save(user);
+            return true;
+        }
+        return false;
+    }
+
 }

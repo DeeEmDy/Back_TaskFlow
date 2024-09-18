@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.taskflow.backend.config.UserAuthProvider;
@@ -42,8 +43,6 @@ public class AuthController {
                 .user(user)
                 .build());
     }
-    // Endpoint para registrar un nuevo usuario
-    // Cambia la firma del método y el tipo de retorno de ResponseEntity<UserDto> a ResponseEntity<User>
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody SignUpDto signUpDto) {
@@ -85,4 +84,16 @@ public class AuthController {
         UserDto user = userService.findByEmail(email);
         return ResponseEntity.ok(user);
     }
+
+    // Endpoint para activar la cuenta de un usuario
+    @PostMapping("/activate")
+    public ResponseEntity<String> activateAccount(@RequestParam("token") String token) {
+        boolean success = userService.activateUser(token);
+        if (success) {
+            return ResponseEntity.ok("Account activated successfully!");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Activation failed or token expired.");
+        }
+    }
+
 }
