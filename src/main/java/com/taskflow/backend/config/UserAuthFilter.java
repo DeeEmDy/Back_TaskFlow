@@ -28,6 +28,19 @@ public class UserAuthFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
+        // Obtén la URI de la solicitud
+        String requestURI = request.getRequestURI();
+
+        // Verifica si la URI corresponde a una ruta pública
+        if (requestURI.startsWith("/auth/login")
+                || requestURI.startsWith("/auth/register")
+                || requestURI.startsWith("/auth/activate")) {
+            // No aplicar el filtro de autenticación a estas rutas
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Procesa el token JWT para rutas protegidas
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
             try {
@@ -42,7 +55,8 @@ public class UserAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.clearContext();
             }
         }
+
+        // Continua con la cadena de filtros
         filterChain.doFilter(request, response);
     }
-
 }
