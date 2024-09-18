@@ -29,7 +29,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
 
         User user = userOptional.get();
-        String roleName = user.getRole() != null ? user.getRole().getRolName() : "USER"; // Default role if null
+        String roleName = user.getRole() != null ? user.getRole().getRolName() : "NORMUSER"; // Default role if null
 
         // Convertir el rol a una autoridad de Spring Security
         return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(),

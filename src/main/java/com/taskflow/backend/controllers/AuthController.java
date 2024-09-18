@@ -1,5 +1,7 @@
 package com.taskflow.backend.controllers;
 
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,6 +17,7 @@ import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.entities.User;
+import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.services.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -43,10 +46,17 @@ public class AuthController {
     // Cambia la firma del método y el tipo de retorno de ResponseEntity<UserDto> a ResponseEntity<User>
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody SignUpDto signUpDto) {
-        // Lógica para registrar un usuario
-        User newUser = userService.register(signUpDto);
-        return ResponseEntity.ok(newUser);
+    public ResponseEntity<?> registerUser(@RequestBody SignUpDto signUpDto) {
+        try {
+            User newUser = userService.register(signUpDto);
+            return ResponseEntity.ok(newUser);
+        } catch (UserAlreadyExistsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "An unexpected error occurred"));
+        }
     }
 
     // Endpoint para refrescar el token de autenticación

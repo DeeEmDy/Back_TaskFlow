@@ -72,9 +72,19 @@ public class UserService implements UserDetailsService {
 
     // Cambia la firma del método y el tipo de retorno de UserDto a User
     public User register(@NonNull SignUpDto signUpDto) {
-        // Verificar si el usuario ya existe
+        // Verificar si el correo electrónico ya está en uso
         if (userRepository.findByEmail(signUpDto.getEmail()).isPresent()) {
-            throw new UserAlreadyExistsException("User already exists with email: " + signUpDto.getEmail());
+            throw new UserAlreadyExistsException("Ya existe un usuario con ese correo electrónico asignado:" + signUpDto.getEmail());
+        }
+
+        // Verificar si el idCard ya está en uso
+        if (userRepository.existsByIdCard(signUpDto.getIdCard())) {
+            throw new IllegalArgumentException("Ese número de cédula ya se encuentra en uso: " + signUpDto.getIdCard());
+        }
+
+        // Verificar si el phoneNumber ya está en uso
+        if (userRepository.existsByPhoneNumber(signUpDto.getPhoneNumber())) {
+            throw new IllegalArgumentException("El numero de télefono ya se encuentra en uso: " + signUpDto.getPhoneNumber());
         }
 
         // Verificar que los IDs de imagen y rol no sean nulos
