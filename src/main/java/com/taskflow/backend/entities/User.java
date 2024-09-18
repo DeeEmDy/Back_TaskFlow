@@ -83,4 +83,17 @@ public class User {
     @Column(name = "activation_token_expiration")
     private Instant activationTokenExpiration;
 
+    //Metodos de la clase
+    public void setActivationToken(String token) {
+        this.activationToken = token;
+    }
+    
+    public void setActivationTokenExpiration(Instant expiration) {
+        this.activationTokenExpiration = expiration;
+    }
+    
+    public void clearActivationToken() {
+        this.activationToken = null;
+        this.activationTokenExpiration = null;
+    }
 }

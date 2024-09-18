@@ -20,8 +20,8 @@ public class UserDto {
     private String secondSurname;
     private String idCard;
     private String phoneNumber;
-    private Integer idImage; // ID de la imagen
-    private String role; // Nombre del rol
+    private ImageDto idImage;
+    private RoleDto role;
     private String email;
     private List<String> roles; // Lista de roles si tienes múltiples roles
     private Boolean userVerified;

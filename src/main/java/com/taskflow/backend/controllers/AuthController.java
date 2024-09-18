@@ -17,7 +17,6 @@ import com.taskflow.backend.dto.AuthResponseDto;
 import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
-import com.taskflow.backend.entities.User;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.services.UserService;
 
@@ -47,8 +46,12 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody SignUpDto signUpDto) {
         try {
-            User newUser = userService.register(signUpDto);
+            // Llama al servicio para registrar el usuario, devuelve UserDto
+            UserDto newUser = userService.register(signUpDto);
+
+            // Devuelve el UserDto en la respuesta
             return ResponseEntity.ok(newUser);
+
         } catch (UserAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {

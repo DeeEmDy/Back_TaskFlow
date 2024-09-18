@@ -1,6 +1,5 @@
 package com.taskflow.backend.mappers;
 
-
 import java.util.Collections;
 import java.util.List;
 
@@ -12,11 +11,13 @@ import org.mapstruct.factory.Mappers;
 
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
+import com.taskflow.backend.dto.ImageDto;
+import com.taskflow.backend.dto.RoleDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
 import com.taskflow.backend.entities.User;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {ImageMapper.class, RoleMapper.class})
 public interface UserMapper {
 
     UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
@@ -32,8 +33,8 @@ public interface UserMapper {
 
     // Convertir User a UserDto
     @Mappings({
-        @Mapping(source = "role.rolName", target = "role"),
-        @Mapping(source = "idImage.id", target = "idImage"),
+        @Mapping(source = "role", target = "role"),  // Usamos RoleMapper para convertir Rol a RoleDto
+        @Mapping(source = "idImage", target = "idImage"),  // Usamos ImageMapper para convertir Image a ImageDto
         @Mapping(source = "createdAt", target = "createdAt"),
         @Mapping(source = "updatedAt", target = "updatedAt"),
         @Mapping(target = "roles", source = "role", qualifiedByName = "mapRoleToRoles")
@@ -69,4 +70,3 @@ public interface UserMapper {
         return Collections.singletonList(role.getRolName());
     }
 }
-
