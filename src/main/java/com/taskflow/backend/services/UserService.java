@@ -59,7 +59,13 @@ public class UserService implements UserDetailsService {
             throw new UsernameNotFoundException("Invalid password");
         }
 
-        String roleName = user.getRole() != null ? user.getRole().getRolName() : "USER"; // Rol predeterminado si es null
+        // Verifica si el usuario está verificado
+        if (!user.getUserVerified()) {
+            throw new IllegalArgumentException("User is not verified, please check your email for the activation link");
+        }
+
+        // Obtiene el nombre del rol del usuario
+        String roleName = user.getRole() != null ? user.getRole().getRolName() : "NORMUSER"; // Rol predeterminado si es null
 
         // Devuelve el UserDto
         return UserDto.builder()
