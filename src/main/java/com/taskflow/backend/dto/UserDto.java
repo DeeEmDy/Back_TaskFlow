@@ -3,10 +3,13 @@ package com.taskflow.backend.dto;
 import java.time.Instant;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -23,6 +26,8 @@ public class UserDto {
     private ImageDto idImage;
     private RoleDto role;
     private String email;
+    @JsonIgnore
+    private String password;
     private List<String> roles; // Lista de roles si tienes múltiples roles
     private Boolean userVerified;
     private Boolean status;

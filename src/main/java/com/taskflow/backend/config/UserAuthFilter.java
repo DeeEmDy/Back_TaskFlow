@@ -28,35 +28,39 @@ public class UserAuthFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        // Obtén la URI de la solicitud
         String requestURI = request.getRequestURI();
 
-        // Verifica si la URI corresponde a una ruta pública
-        if (requestURI.startsWith("/auth/login")
-                || requestURI.startsWith("/auth/register")
-                || requestURI.startsWith("/auth/activate")) {
-            // No aplicar el filtro de autenticación a estas rutas
+        if (isPublicURI(requestURI)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Procesa el token JWT para rutas protegidas
-        String token = request.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
+        String authorizationHeader = request.getHeader("Authorization");
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String token = authorizationHeader.substring(7);
             try {
-                token = token.substring(7); // Remove "Bearer " prefix
                 Authentication authentication = userAuthProvider.validateToken(token);
-
                 if (authentication != null) {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             } catch (JWTVerificationException e) {
-                // Token is invalid or expired
                 SecurityContextHolder.clearContext();
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             }
+        } else {
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
 
-        // Continua con la cadena de filtros
         filterChain.doFilter(request, response);
+    }
+
+    // Método para verificar si la URI es pública
+    private boolean isPublicURI(String uri) {
+        return uri.startsWith("/auth/login")
+                || uri.startsWith("/auth/register")
+                || uri.startsWith("/auth/activate");
     }
 }

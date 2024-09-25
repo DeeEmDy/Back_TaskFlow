@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,7 @@ import com.taskflow.backend.dto.AuthResponseDto;
 import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
+import com.taskflow.backend.exception.JwtAuthenticationException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.services.UserService;
 
@@ -57,15 +59,15 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "An unexpected error occurred"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Ha ocurrido un error"));
         }
     }
 
-    // Endpoint para refrescar el token de autenticación
+    // Endpoint para refrescar el token de autenticación// Endpoint para obtener un nuevo token de refresco
     @PostMapping("/refresh-token")
     public ResponseEntity<AuthResponseDto> refreshToken(@RequestBody String refreshToken) {
         try {
-            Authentication authentication = userAuthProvider.validateToken(refreshToken);
+            Authentication authentication = userAuthProvider.validateRefreshToken(refreshToken);
             UserDto user = (UserDto) authentication.getPrincipal();
             String newToken = userAuthProvider.createToken(user.getEmail());
 
@@ -75,10 +77,11 @@ public class AuthController {
                     .build();
 
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
+        } catch (JwtAuthenticationException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null); // Respond without body
         }
     }
+
 
     // Endpoint para obtener información del usuario autenticado
     @GetMapping("/me")
@@ -93,10 +96,23 @@ public class AuthController {
     public ResponseEntity<String> activateAccount(@RequestParam("token") String token) {
         boolean success = userService.activateUser(token);
         if (success) {
-            return ResponseEntity.ok("Account activated successfully!");
+            return ResponseEntity.ok("La cuenta ha sido activada correctamente");
         } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Activation failed or token expired.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("La activación de la cuenta ha fallado");
         }
     }
+
+    // Endpoint para cerrar sesión del usuario.
+    @DeleteMapping("/logout")
+    public ResponseEntity<String> logout(Authentication authentication) {
+        try {
+            String token = userAuthProvider.getTokenFromAuth(authentication);
+            userAuthProvider.invalidateToken(token);
+            return ResponseEntity.ok("Se ha cerrado la sesión correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Cerrar sesión fallida");
+        }
+    }
+      
 
 }

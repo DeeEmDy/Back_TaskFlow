@@ -48,10 +48,15 @@ public class SecurityConfig {
                 .requestMatchers("/admin/**").hasAuthority("ADMIN")
                 // Rutas protegidas solo para NORMUSER
                 .requestMatchers("/user/**").hasAuthority("NORMUSER")
+                // Ruta para obtener todos los registros de usuarios.
+                .requestMatchers(HttpMethod.GET, "/user/getAll").hasAuthority("ADMIN")
+                // Ruta para cerrar sesión, accesible solo para NORMUSER y ADMIN
+                .requestMatchers(HttpMethod.DELETE, "/auth/logout").hasAnyAuthority("NORMUSER", "ADMIN")
                 // Todas las demás rutas requieren autenticación
                 .anyRequest().authenticated())
                 .addFilterBefore(new UserAuthFilter(userAuthProvider), UsernamePasswordAuthenticationFilter.class); // Filtro de autenticación
 
         return http.build();
     }
+
 }

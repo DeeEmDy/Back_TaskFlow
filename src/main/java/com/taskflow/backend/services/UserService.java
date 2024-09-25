@@ -2,7 +2,9 @@ package com.taskflow.backend.services;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.stream.Collectors;
 
+import java.util.List;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -42,9 +44,9 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(@SuppressWarnings("null") @NonNull String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + email));
 
-        String roleName = user.getRole() != null ? user.getRole().getRolName() : "USER"; // Rol predeterminado si es null
+        String roleName = user.getRole() != null ? user.getRole().getRolName() : "NORMUSER"; // Rol predeterminado si es null
 
         return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(),
                 Collections.singletonList(new SimpleGrantedAuthority(roleName)));
@@ -52,16 +54,16 @@ public class UserService implements UserDetailsService {
 
     public UserDto login(@NonNull CredentialsDto credentialsDto) {
         User user = userRepository.findByEmail(credentialsDto.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + credentialsDto.getEmail()));
+                .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + credentialsDto.getEmail()));
 
         // Compara la contraseña proporcionada con la almacenada
         if (!passwordEncoder.matches(credentialsDto.getPassword(), user.getPassword())) {
-            throw new UsernameNotFoundException("Invalid password");
+            throw new UsernameNotFoundException("Contraseña incorrecta");
         }
 
         // Verifica si el usuario está verificado
         if (!user.getUserVerified()) {
-            throw new IllegalArgumentException("User is not verified, please check your email for the activation link");
+            throw new IllegalArgumentException("El usuario no está verificado, por favor revise su correo electrónico");
         }
 
         // Obtiene el nombre del rol del usuario
@@ -101,14 +103,14 @@ public class UserService implements UserDetailsService {
 
         // Verifica que los IDs de imagen y rol no sean nulos
         if (signUpDto.getIdImage() == null || signUpDto.getIdRol() == null) {
-            throw new IllegalArgumentException("Image ID and Role ID must not be null");
+            throw new IllegalArgumentException("Los IDs de imagen y rol no pueden ser nulos");
         }
 
         // Encuentra imagen y rol asociados
         Image image = imageRepository.findById(signUpDto.getIdImage())
-                .orElseThrow(() -> new RuntimeException("Image not found"));
+                .orElseThrow(() -> new RuntimeException("La imagen no se ha encontrado"));
         Rol rol = rolRepository.findById(signUpDto.getIdRol())
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+                .orElseThrow(() -> new RuntimeException("El rol no se ha encontrado"));
 
         // Crea nuevo usuario
         User newUser = User.builder()
@@ -162,10 +164,7 @@ public class UserService implements UserDetailsService {
 
     public UserDto findByEmail(@NonNull String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
-
-        String roleName = user.getRole() != null ? user.getRole().getRolName() : "USER"; // Rol predeterminado si es null
-
+                .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + email));
         // Devuelve el UserDto
         return UserDto.builder()
                 .id(user.getId())
@@ -195,4 +194,88 @@ public class UserService implements UserDetailsService {
         }
         return false;
     }
+
+    //Método para actualizar la contraseña de un usuario
+    public boolean updatePassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + email));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        return true;
+    }
+
+    public List<UserDto> findAll() {
+        return userRepository.findAll().stream()
+                .map(this::toUserDto)
+                .collect(Collectors.toList());
+    }
+
+    public UserDto findById(Integer id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("No se ha encontrado un usuario con ese ID: " + id));
+        return toUserDto(user);
+    }
+
+    public UserDto update(Integer id, SignUpDto updatedUserDto) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("No se ha encontrado un usuario con ese ID: " + id));
+
+
+        // Verifica si el correo electrónico ya está en uso
+        if (!user.getEmail().equals(updatedUserDto.getEmail()) && userRepository.existsByEmail(updatedUserDto.getEmail())) {
+            throw new IllegalArgumentException("Ya existe un usuario con ese correo electrónico asignado: " + updatedUserDto.getEmail());
+        }
+
+        // Verifica si el numero de cedula ya está en uso
+        if (!user.getIdCard().equals(updatedUserDto.getIdCard()) && userRepository.existsByIdCard(updatedUserDto.getIdCard())) {
+            throw new IllegalArgumentException("Ese número de cédula ya se encuentra en uso: " + updatedUserDto.getIdCard());
+        }
+
+        // Verifica si el numero telefonico ya está en uso
+        if (!user.getPhoneNumber().equals(updatedUserDto.getPhoneNumber()) && userRepository.existsByPhoneNumber(updatedUserDto.getPhoneNumber())) {
+            throw new IllegalArgumentException("El número de teléfono ya se encuentra en uso: " + updatedUserDto.getPhoneNumber());
+        }
+
+        // Actualiza los campos del usuario
+        user.setName(updatedUserDto.getName());
+        user.setFirstSurname(updatedUserDto.getFirstSurname());
+        user.setSecondSurname(updatedUserDto.getSecondSurname());
+        user.setIdCard(updatedUserDto.getIdCard());
+        user.setPhoneNumber(updatedUserDto.getPhoneNumber());
+        user.setEmail(updatedUserDto.getEmail());
+        user.setPassword(passwordEncoder.encode(updatedUserDto.getPassword()));
+        user.setUpdatedAt(Instant.now());
+
+        userRepository.save(user);
+
+        return toUserDto(user);
+    }
+
+    public void delete(Integer id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("No se ha encontrado un usuario con ese ID: " + id));
+        userRepository.delete(user);
+    }
+
+    private UserDto toUserDto(User user) {
+        return UserDto.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .firstSurname(user.getFirstSurname())
+                .secondSurname(user.getSecondSurname())
+                .idCard(user.getIdCard())
+                .phoneNumber(user.getPhoneNumber())
+                .email(user.getEmail())
+                .idImage(imageMapper.toImageDto(user.getIdImage())) // Usa ImageMapper para convertir la imagen
+                .roles(Collections.singletonList(roleMapper.toRoleDto(user.getRole()).getRolName())) // Usa RoleMapper
+                .userVerified(user.getUserVerified())
+                .status(user.getStatus())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    //Metodo para cerrar la sesion de un usuario.
+
 }
