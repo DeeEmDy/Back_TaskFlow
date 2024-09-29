@@ -10,18 +10,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.taskflow.backend.exception.TokenValidationException;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor; //Ya que queremos que este filtro se utilice: 1 vez por solicitud.
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final UserAuthProvider userAuthProvider;
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
-
 
     @Override
     protected void doFilterInternal(
@@ -30,24 +31,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String headerToken = request.getHeader(HttpHeaders.AUTHORIZATION);
-        logger.info("Authorization header: {}", headerToken); // Log del header de autorización
+        logger.info("Authorization header from IP {}: {}", request.getRemoteAddr(), headerToken);
 
         if (headerToken != null && headerToken.startsWith("Bearer ")) {
             String token = headerToken.substring(7);
-            logger.info("Token: {}", token); // Log del token
+            logger.info("Extracted token: {}", token);
 
+            // Dentro de JwtAuthFilter.java
             try {
                 Authentication auth = userAuthProvider.validateToken(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-                logger.info("Authentication successful for token: {}", token); // Log de éxito
-            } catch (RuntimeException e) {
-                logger.error("Token validation failed: {}", e.getMessage()); // Log de error
+                logger.info("Authentication successful for token: {}", token);
+            } catch (TokenValidationException e) { // Cambia a la nueva excepción
+                logger.error("Token validation failed: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // Respuesta 401
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Unauthorized: " + e.getMessage()); // Mensaje adicional
                 return;
             }
+
         } else {
-            logger.warn("No valid token found in the request."); // Log si no se encuentra un token
+            logger.warn("No valid token found in the request from IP: {}", request.getRemoteAddr());
         }
 
         filterChain.doFilter(request, response);

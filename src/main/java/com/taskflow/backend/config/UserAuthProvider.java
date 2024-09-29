@@ -18,7 +18,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.taskflow.backend.dto.UserDto;
-import com.taskflow.backend.exception.JwtAuthenticationException;
+import com.taskflow.backend.exception.TokenValidationException; // Importa la nueva excepción
 import com.taskflow.backend.services.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 @Component
 public class UserAuthProvider {
 
-    // Cambia la clave secreta aquí
     @Value("${security.jwt.token.secret-key:your-256-bit-secret}")
     private String secretKey;
 
@@ -37,7 +36,7 @@ public class UserAuthProvider {
     private final UserService userService;
 
     // Set para almacenar tokens revocados
-    private final Set<String> revokedTokens = new HashSet<>(); 
+    private final Set<String> revokedTokens = new HashSet<>();
 
     private static final Logger logger = LoggerFactory.getLogger(UserAuthProvider.class);
 
@@ -46,19 +45,19 @@ public class UserAuthProvider {
         Date now = new Date();
         Date expiresAt = new Date(now.getTime() + expirationTime);
         String token = JWT.create()
-                .withSubject(email) 
+                .withSubject(email)
                 .withIssuedAt(now)
                 .withExpiresAt(expiresAt)
-                .sign(Algorithm.HMAC256(secretKey)); 
+                .sign(Algorithm.HMAC256(secretKey));
         logger.info("Token creado para el usuario: {}", email);
         return token;
     }
 
     // Método para validar el token JWT
     public Authentication validateToken(String token) {
-        if (isTokenRevoked(token)) { 
+        if (isTokenRevoked(token)) {
             logger.warn("Token revocado: {}", token);
-            throw new JwtAuthenticationException("Token has been revoked");
+            throw new TokenValidationException("El token ha sido revocado."); // Lanza la nueva excepción
         }
         try {
             JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secretKey)).build();
@@ -68,14 +67,14 @@ public class UserAuthProvider {
             return new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
         } catch (JWTVerificationException | IllegalArgumentException e) {
             logger.error("Error en la validación del token: {}", e.getMessage());
-            throw new JwtAuthenticationException("Token expirado o inválido.", e);
+            throw new TokenValidationException("Token expirado o inválido.", e); // Lanza la nueva excepción
         }
-    }    
+    }
 
     // Método para crear un token de refrescamiento
     public String createRefreshToken(String email) {
         Date now = new Date();
-        Date expiresAt = new Date(now.getTime() + expirationTime * 2); 
+        Date expiresAt = new Date(now.getTime() + expirationTime * 2);
         String refreshToken = JWT.create()
                 .withSubject(email)
                 .withIssuedAt(now)
@@ -84,12 +83,12 @@ public class UserAuthProvider {
         logger.info("Token de refresco creado para el usuario: {}", email);
         return refreshToken;
     }
-    
+
     // Método para validar el token de refresco
     public Authentication validateRefreshToken(String token) {
         if (isTokenRevoked(token)) {
             logger.warn("Token de refresco revocado: {}", token);
-            throw new JwtAuthenticationException("El token de refresco ha sido revocado.");
+            throw new TokenValidationException("El token de refresco ha sido revocado."); // Lanza la nueva excepción
         }
         try {
             JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secretKey)).build();
@@ -99,13 +98,13 @@ public class UserAuthProvider {
             return new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
         } catch (JWTVerificationException | IllegalArgumentException e) {
             logger.error("Error en la validación del token de refresco: {}", e.getMessage());
-            throw new JwtAuthenticationException("Refresh token expirado o inválido.", e);
+            throw new TokenValidationException("Refresh token expirado o inválido.", e); // Lanza la nueva excepción
         }
     }
-    
+
     // Método para invalidar un token
     public void invalidateToken(String token) {
-        revokedTokens.add(token); // Revocar el token para futuras solicitudes.
+        revokedTokens.add(token);
         logger.info("Token invalidado: {}", token);
     }
 

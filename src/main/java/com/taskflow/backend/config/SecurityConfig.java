@@ -27,7 +27,7 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:5173"); // URL del Frontend
+        config.addAllowedOrigin("http://localhost:5173");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         source.registerCorsConfiguration("/**", config);
@@ -36,22 +36,20 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(source))
             .exceptionHandling(exceptions -> exceptions
-            .authenticationEntryPoint(userAuthenticationEntryPoint))
+                .authenticationEntryPoint(userAuthenticationEntryPoint))
             .sessionManagement(session -> session
-            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .csrf(csrf -> csrf.disable()) // Deshabilitar CSRF ya que estamos usando JWT
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(requests -> requests
-            // Rutas públicas
-            .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
-            .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/activate").permitAll()
-            .requestMatchers("/admin/**").hasAuthority("ADMIN")
-            .requestMatchers("/user/**").hasAuthority("NORMUSER")
-            .requestMatchers(HttpMethod.GET, "/user/getAll").hasAuthority("ADMIN")
-            .requestMatchers(HttpMethod.DELETE, "/auth/logout").hasAnyAuthority("NORMUSER", "ADMIN")
-            .anyRequest().authenticated())
-            .addFilterBefore(new UserAuthFilter(userAuthProvider), UsernamePasswordAuthenticationFilter.class); //Filtro de autenticación
+                .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/activate").permitAll()
+                .requestMatchers("/admin/**").hasRole("ADMIN") // Usar hasRole() si estás usando roles
+                .requestMatchers("/user/**").hasRole("NORMUSER") // Cambiado a hasRole
+                .requestMatchers(HttpMethod.GET, "/user/getAll").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/auth/logout").hasAnyRole("NORMUSER", "ADMIN")
+                .anyRequest().authenticated())
+            .addFilterBefore(new JwtAuthFilter(userAuthProvider), UsernamePasswordAuthenticationFilter.class);
 
-    return http.build();
+        return http.build();
     }
-
 }
