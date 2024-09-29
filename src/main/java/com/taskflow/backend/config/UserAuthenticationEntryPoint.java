@@ -3,6 +3,8 @@ package com.taskflow.backend.config;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
@@ -19,16 +21,18 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class UserAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(); //
-
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(); 
+    private static final Logger logger = LoggerFactory.getLogger(UserAuthenticationEntryPoint.class);
 
     @Override
     public void commence(
             HttpServletRequest request,
             HttpServletResponse response,
             AuthenticationException authException) throws IOException, ServletException {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); //Devolución de error de mensaje de NO Autorizado.
-            response.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE); //Devolución de objeto JSON.
-            OBJECT_MAPPER.writeValue(response.getOutputStream(), new ErrorDto("Unauthorized path")); //
+        logger.error("Unauthorized access: {}", authException.getMessage()); // Log de error de acceso no autorizado
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        OBJECT_MAPPER.writeValue(response.getOutputStream(), new ErrorDto("Unauthorized path"));
     }
 }
+

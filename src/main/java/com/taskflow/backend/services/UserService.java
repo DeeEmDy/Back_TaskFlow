@@ -2,9 +2,11 @@ package com.taskflow.backend.services;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
-import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,15 +20,15 @@ import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
-import com.taskflow.backend.entities.User; // Ajuste aquí
-import com.taskflow.backend.exception.UserAlreadyExistsException;
+import com.taskflow.backend.entities.User;
+import com.taskflow.backend.exception.UserAlreadyExistsException; // Ajuste aquí
 import com.taskflow.backend.mappers.ImageMapper;
 import com.taskflow.backend.mappers.RoleMapper;
 import com.taskflow.backend.repositories.ImageRepository;
 import com.taskflow.backend.repositories.RolRepository;
-import com.taskflow.backend.repositories.UserRepository; // Ajuste aquí
+import com.taskflow.backend.repositories.UserRepository;
 
-import lombok.RequiredArgsConstructor;
+import lombok.RequiredArgsConstructor; // Ajuste aquí
 
 @RequiredArgsConstructor
 @Service
@@ -40,6 +42,9 @@ public class UserService implements UserDetailsService {
     private final EmailService emailService;
     private final ImageMapper imageMapper; // Mapeador de Image
     private final RoleMapper roleMapper;   // Mapeador de Rol
+
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+
 
     @Override
     public UserDetails loadUserByUsername(@SuppressWarnings("null") @NonNull String email) throws UsernameNotFoundException {
@@ -68,6 +73,9 @@ public class UserService implements UserDetailsService {
 
         // Obtiene el nombre del rol del usuario
         String roleName = user.getRole() != null ? user.getRole().getRolName() : "NORMUSER"; // Rol predeterminado si es null
+
+        //Log con toda la información del usuario logueado.
+        logger.info("Usuario logueado con éxito: {}", user);
 
         // Devuelve el UserDto
         return UserDto.builder()
@@ -144,6 +152,9 @@ public class UserService implements UserDetailsService {
         String activationLink = "http://localhost:8080/auth/activate?token=" + activationToken;
         emailService.sendActivationEmail(savedUser.getEmail(), activationLink);
 
+        //Log con toda la información del usuario registrado
+        logger.info("Usuario registrado: {}", savedUser);
+
         // Devuelve el UserDto, mapeando las entidades a sus DTOs
         return UserDto.builder()
                 .id(savedUser.getId())
@@ -206,6 +217,8 @@ public class UserService implements UserDetailsService {
     }
 
     public List<UserDto> findAll() {
+        //Log con toda la información de los usuarios obtenidos.
+        logger.info("Usuarios obtenidos: {}", userRepository.findAll());
         return userRepository.findAll().stream()
                 .map(this::toUserDto)
                 .collect(Collectors.toList());

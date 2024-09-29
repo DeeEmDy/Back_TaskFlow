@@ -34,29 +34,24 @@ public class SecurityConfig {
 
         // Configuración de seguridad
         http
-                .cors(cors -> cors.configurationSource(source))
-                .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint(userAuthenticationEntryPoint))
-                .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(csrf -> csrf.disable()) // Deshabilitar CSRF ya que estamos usando JWT
-                .authorizeHttpRequests(requests -> requests
-                // Rutas públicas, disponibles para todos
-                .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/activate").permitAll() // Rutas de autenticación y registro
-                // Rutas protegidas solo para ADMIN
-                .requestMatchers("/admin/**").hasAuthority("ADMIN")
-                // Rutas protegidas solo para NORMUSER
-                .requestMatchers("/user/**").hasAuthority("NORMUSER")
-                // Ruta para obtener todos los registros de usuarios.
-                .requestMatchers(HttpMethod.GET, "/user/getAll").hasAuthority("ADMIN")
-                // Ruta para cerrar sesión, accesible solo para NORMUSER y ADMIN
-                .requestMatchers(HttpMethod.DELETE, "/auth/logout").hasAnyAuthority("NORMUSER", "ADMIN")
-                // Todas las demás rutas requieren autenticación
-                .anyRequest().authenticated())
-                .addFilterBefore(new UserAuthFilter(userAuthProvider), UsernamePasswordAuthenticationFilter.class); // Filtro de autenticación
+            .cors(cors -> cors.configurationSource(source))
+            .exceptionHandling(exceptions -> exceptions
+            .authenticationEntryPoint(userAuthenticationEntryPoint))
+            .sessionManagement(session -> session
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .csrf(csrf -> csrf.disable()) // Deshabilitar CSRF ya que estamos usando JWT
+            .authorizeHttpRequests(requests -> requests
+            // Rutas públicas
+            .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
+            .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/activate").permitAll()
+            .requestMatchers("/admin/**").hasAuthority("ADMIN")
+            .requestMatchers("/user/**").hasAuthority("NORMUSER")
+            .requestMatchers(HttpMethod.GET, "/user/getAll").hasAuthority("ADMIN")
+            .requestMatchers(HttpMethod.DELETE, "/auth/logout").hasAnyAuthority("NORMUSER", "ADMIN")
+            .anyRequest().authenticated())
+            .addFilterBefore(new UserAuthFilter(userAuthProvider), UsernamePasswordAuthenticationFilter.class); //Filtro de autenticación
 
-        return http.build();
+    return http.build();
     }
 
 }

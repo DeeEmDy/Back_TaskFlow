@@ -26,3 +26,8 @@ spring:
           auth: true
           starttls:
             enable: true
+
+      logging:
+        level:
+          root: INFO
+          com.taskflow.backend: DEBUG
