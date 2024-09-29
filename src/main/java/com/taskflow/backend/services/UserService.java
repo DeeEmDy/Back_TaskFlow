@@ -21,14 +21,14 @@ import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
 import com.taskflow.backend.entities.User;
-import com.taskflow.backend.exception.UserAlreadyExistsException; // Ajuste aquí
-import com.taskflow.backend.mappers.ImageMapper;
+import com.taskflow.backend.mappers.ImageMapper; // Ajuste aquí
 import com.taskflow.backend.mappers.RoleMapper;
 import com.taskflow.backend.repositories.ImageRepository;
 import com.taskflow.backend.repositories.RolRepository;
 import com.taskflow.backend.repositories.UserRepository;
 
-import lombok.RequiredArgsConstructor; // Ajuste aquí
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Service
@@ -45,9 +45,8 @@ public class UserService implements UserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-
     @Override
-    public UserDetails loadUserByUsername(@SuppressWarnings("null") @NonNull String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + email));
 
@@ -74,7 +73,7 @@ public class UserService implements UserDetailsService {
         // Obtiene el nombre del rol del usuario
         String roleName = user.getRole() != null ? user.getRole().getRolName() : "NORMUSER"; // Rol predeterminado si es null
 
-        //Log con toda la información del usuario logueado.
+        // Log con toda la información del usuario logueado.
         logger.info("Usuario logueado con éxito: {}", user);
 
         // Devuelve el UserDto
@@ -87,76 +86,80 @@ public class UserService implements UserDetailsService {
                 .phoneNumber(user.getPhoneNumber())
                 .email(user.getEmail())
                 .idImage(imageMapper.toImageDto(user.getIdImage())) // Usa el método de ImageMapper
-                .roles(Collections.singletonList(roleName))
+                .role(roleMapper.toRoleDto(user.getRole())) // Usa el método de RoleMapper
                 .userVerified(user.getUserVerified())
                 .status(user.getStatus())
                 .build();
     }
 
+    @Transactional // Asegura que la transacción se complete o se revierta si se produce una excepción
     public UserDto register(@NonNull SignUpDto signUpDto) {
-        // Verifica si el correo electrónico ya está en uso
-        if (userRepository.findByEmail(signUpDto.getEmail()).isPresent()) {
-            throw new UserAlreadyExistsException("Ya existe un usuario con ese correo electrónico asignado: " + signUpDto.getEmail());
-        }
 
-        // Verifica si el idCard ya está en uso
-        if (userRepository.existsByIdCard(signUpDto.getIdCard())) {
-            throw new IllegalArgumentException("Ese número de cédula ya se encuentra en uso: " + signUpDto.getIdCard());
-        }
-
-        // Verifica si el phoneNumber ya está en uso
-        if (userRepository.existsByPhoneNumber(signUpDto.getPhoneNumber())) {
-            throw new IllegalArgumentException("El número de teléfono ya se encuentra en uso: " + signUpDto.getPhoneNumber());
-        }
+        logger.info("Iniciando el registro del usuario: {}", signUpDto);
 
         // Verifica que los IDs de imagen y rol no sean nulos
         if (signUpDto.getIdImage() == null || signUpDto.getIdRol() == null) {
+            logger.error("Los IDs de imagen y rol no pueden ser nulos: idImage={}, idRol={}", signUpDto.getIdImage(), signUpDto.getIdRol());
             throw new IllegalArgumentException("Los IDs de imagen y rol no pueden ser nulos");
         }
 
         // Encuentra imagen y rol asociados
         Image image = imageRepository.findById(signUpDto.getIdImage())
-                .orElseThrow(() -> new RuntimeException("La imagen no se ha encontrado"));
-        Rol rol = rolRepository.findById(signUpDto.getIdRol())
-                .orElseThrow(() -> new RuntimeException("El rol no se ha encontrado"));
+                .orElseThrow(() -> {
+                    logger.error("La imagen no se ha encontrado: idImage={}", signUpDto.getIdImage());
+                    return new RuntimeException("La imagen no se ha encontrado");
+                });
 
-        // Crea nuevo usuario
+        Rol rol = rolRepository.findById(signUpDto.getIdRol())
+                .orElseThrow(() -> {
+                    logger.error("El rol no se ha encontrado: idRol={}", signUpDto.getIdRol());
+                    return new RuntimeException("El rol no se ha encontrado");
+                });
+
+        // Crea nuevo usuario utilizando el UserMapper
         User newUser = User.builder()
                 .name(signUpDto.getName())
                 .firstSurname(signUpDto.getFirstSurname())
                 .secondSurname(signUpDto.getSecondSurname())
                 .idCard(signUpDto.getIdCard())
                 .phoneNumber(signUpDto.getPhoneNumber())
-                .idImage(image)
-                .role(rol)
+                .idImage(image) // Asignación directa de la imagen
+                .role(rol) // Asignación directa del rol
                 .email(signUpDto.getEmail())
-                .password(passwordEncoder.encode(signUpDto.getPassword()))
+                .password(passwordEncoder.encode(signUpDto.getPassword())) // Codificación de la contraseña
                 .userVerified(false) // Usuario no verificado inicialmente
                 .status(signUpDto.getStatus())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
 
+        logger.info("Nuevo usuario creado: {}", newUser);
+
+        // Validar campos únicos mediante validateUniqueFields.
+        validateUniqueFields(signUpDto);
+
         // Guarda el usuario en la base de datos
         User savedUser = userRepository.save(newUser);
+        logger.info("Usuario guardado en la base de datos: {}", savedUser);
 
         // Genera y envía el correo de activación
         String activationToken = tokenService.generateActivationToken();
         Instant tokenExpiration = tokenService.getTokenExpiration();
-
         savedUser.setActivationToken(activationToken);
         savedUser.setActivationTokenExpiration(tokenExpiration);
 
-        userRepository.save(savedUser);
+        userRepository.save(savedUser); // Asegúrate de que el usuario se guarda nuevamente después de establecer el token
 
+        // Enviar el correo de activación
         String activationLink = "http://localhost:8080/auth/activate?token=" + activationToken;
         emailService.sendActivationEmail(savedUser.getEmail(), activationLink);
+        logger.info("Correo de activación enviado a: {}", savedUser.getEmail());
 
-        //Log con toda la información del usuario registrado
+        // Log con toda la información del usuario registrado
         logger.info("Usuario registrado: {}", savedUser);
 
         // Devuelve el UserDto, mapeando las entidades a sus DTOs
-        return UserDto.builder()
+        UserDto userDto = UserDto.builder()
                 .id(savedUser.getId())
                 .name(savedUser.getName())
                 .firstSurname(savedUser.getFirstSurname())
@@ -165,12 +168,15 @@ public class UserService implements UserDetailsService {
                 .phoneNumber(savedUser.getPhoneNumber())
                 .email(savedUser.getEmail())
                 .idImage(imageMapper.toImageDto(savedUser.getIdImage())) // Usa el método de ImageMapper
-                .roles(Collections.singletonList(roleMapper.toRoleDto(savedUser.getRole()).getRolName())) // Usa el método de RoleMapper
+                .role(roleMapper.toRoleDto(savedUser.getRole())) // Usa el método de RoleMapper
                 .userVerified(savedUser.getUserVerified())
                 .status(savedUser.getStatus())
                 .createdAt(savedUser.getCreatedAt())
                 .updatedAt(savedUser.getUpdatedAt())
                 .build();
+
+        logger.info("UserDto devuelto: {}", userDto);
+        return userDto;
     }
 
     public UserDto findByEmail(@NonNull String email) {
@@ -186,7 +192,7 @@ public class UserService implements UserDetailsService {
                 .phoneNumber(user.getPhoneNumber())
                 .email(user.getEmail())
                 .idImage(imageMapper.toImageDto(user.getIdImage())) // Usa el método de ImageMapper
-                .roles(Collections.singletonList(roleMapper.toRoleDto(user.getRole()).getRolName())) // Usa el método de RoleMapper
+                .role(roleMapper.toRoleDto(user.getRole())) // Usa el método de RoleMapper
                 .userVerified(user.getUserVerified())
                 .status(user.getStatus())
                 .createdAt(user.getCreatedAt())
@@ -234,7 +240,6 @@ public class UserService implements UserDetailsService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("No se ha encontrado un usuario con ese ID: " + id));
 
-
         // Verifica si el correo electrónico ya está en uso
         if (!user.getEmail().equals(updatedUserDto.getEmail()) && userRepository.existsByEmail(updatedUserDto.getEmail())) {
             throw new IllegalArgumentException("Ya existe un usuario con ese correo electrónico asignado: " + updatedUserDto.getEmail());
@@ -281,7 +286,7 @@ public class UserService implements UserDetailsService {
                 .phoneNumber(user.getPhoneNumber())
                 .email(user.getEmail())
                 .idImage(imageMapper.toImageDto(user.getIdImage())) // Usa ImageMapper para convertir la imagen
-                .roles(Collections.singletonList(roleMapper.toRoleDto(user.getRole()).getRolName())) // Usa RoleMapper
+                .role(roleMapper.toRoleDto(user.getRole())) // Usa el método de RoleMapper
                 .userVerified(user.getUserVerified())
                 .status(user.getStatus())
                 .createdAt(user.getCreatedAt())
@@ -289,6 +294,22 @@ public class UserService implements UserDetailsService {
                 .build();
     }
 
-    //Metodo para cerrar la sesion de un usuario.
+    //Metodo para validar campos unicos en los registros de usuario.
+    public void validateUniqueFields(SignUpDto signUpDto) {
+        // Verifica si el correo electrónico ya está en uso
+        if (userRepository.findByEmail(signUpDto.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Ya existe un usuario con ese correo electrónico asignado: " + signUpDto.getEmail());
+        }
+
+        // Verifica si el idCard ya está en uso
+        if (userRepository.existsByIdCard(signUpDto.getIdCard())) {
+            throw new IllegalArgumentException("Ese número de cédula ya se encuentra en uso: " + signUpDto.getIdCard());
+        }
+
+        // Verifica si el phoneNumber ya está en uso
+        if (userRepository.existsByPhoneNumber(signUpDto.getPhoneNumber())) {
+            throw new IllegalArgumentException("El número de teléfono ya se encuentra en uso: " + signUpDto.getPhoneNumber());
+        }
+    }
 
 }

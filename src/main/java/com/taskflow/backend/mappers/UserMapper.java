@@ -33,11 +33,10 @@ public interface UserMapper {
 
     // Convertir User a UserDto
     @Mappings({
-        @Mapping(source = "role", target = "role"),  // Usamos RoleMapper para convertir Rol a RoleDto
+        @Mapping(source = "role", target = "role", qualifiedByName = "mapRoleToRole"), // Mapeo directo
         @Mapping(source = "idImage", target = "idImage"),  // Usamos ImageMapper para convertir Image a ImageDto
         @Mapping(source = "createdAt", target = "createdAt"),
         @Mapping(source = "updatedAt", target = "updatedAt"),
-        @Mapping(target = "roles", source = "role", qualifiedByName = "mapRoleToRoles")
     })
     UserDto toUserDto(User user);
 
@@ -69,4 +68,13 @@ public interface UserMapper {
         }
         return Collections.singletonList(role.getRolName());
     }
+
+    @Named("mapRoleToRole")
+    default RoleDto mapRoleToRole(Rol role) {
+        if (role == null) {
+            return null;
+        }
+        return new RoleDto(role.getId(), role.getRolName(), role.getStatus());
+    }
+
 }

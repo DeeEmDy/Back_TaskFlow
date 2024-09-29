@@ -1,7 +1,6 @@
 package com.taskflow.backend.dto;
 
 import java.time.Instant;
-import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -28,7 +27,6 @@ public class UserDto {
     private String email;
     @JsonIgnore
     private String password;
-    private List<String> roles; // Lista de roles si tienes múltiples roles
     private Boolean userVerified;
     private Boolean status;
     private Instant createdAt;
