@@ -16,6 +16,7 @@ import com.taskflow.backend.dto.RoleDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
 import com.taskflow.backend.entities.User;
+import com.taskflow.backend.enums.RoleTypeEnum;
 
 @Mapper(componentModel = "spring", uses = {ImageMapper.class, RoleMapper.class})
 public interface UserMapper {
@@ -26,8 +27,6 @@ public interface UserMapper {
     @Mappings({
         @Mapping(source = "idImage", target = "idImage", qualifiedByName = "mapIdToImage"),
         @Mapping(source = "idRol", target = "role", qualifiedByName = "mapIdToRole"),
-        @Mapping(target = "createdAt", ignore = true),  // No hay propiedad equivalente en SignUpDto
-        @Mapping(target = "updatedAt", ignore = true)   // No hay propiedad equivalente en SignUpDto
     })
     User signUpToUser(SignUpDto signUpDto);
 
@@ -35,10 +34,15 @@ public interface UserMapper {
     @Mappings({
         @Mapping(source = "role", target = "role", qualifiedByName = "mapRoleToRole"), // Mapeo directo
         @Mapping(source = "idImage", target = "idImage"),  // Usamos ImageMapper para convertir Image a ImageDto
-        @Mapping(source = "createdAt", target = "createdAt"),
-        @Mapping(source = "updatedAt", target = "updatedAt"),
     })
     UserDto toUserDto(User user);
+
+    // Convertir UserDto a User
+    @Mappings({
+        @Mapping(source = "role", target = "role", qualifiedByName = "mapRoleDtoToRole"),
+        @Mapping(source = "idImage", target = "idImage")  // Usamos ImageMapper para convertir ImageDto a Image
+    })
+    User toUser(UserDto userDto);
 
     // Métodos de conversión personalizados
     @Named("mapIdToImage")
@@ -66,7 +70,7 @@ public interface UserMapper {
         if (role == null) {
             return Collections.emptyList();
         }
-        return Collections.singletonList(role.getRolName());
+        return Collections.singletonList(role.getRolName().name()); // Usamos el nombre del enum
     }
 
     @Named("mapRoleToRole")
@@ -74,7 +78,17 @@ public interface UserMapper {
         if (role == null) {
             return null;
         }
-        return new RoleDto(role.getId(), role.getRolName(), role.getStatus());
+        return new RoleDto(role.getId(), role.getRolName().name(), role.getStatus());
     }
 
+    @Named("mapRoleDtoToRole")
+    default Rol mapRoleDtoToRole(RoleDto roleDto) {
+        if (roleDto == null) {
+            return null;
+        }
+        Rol role = new Rol();
+        role.setId(roleDto.getId());
+        role.setRolName(RoleTypeEnum.valueOf(roleDto.getRolName())); // Convertimos el nombre a RoleTypeEnum
+        return role;
+    }
 }

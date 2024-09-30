@@ -2,8 +2,12 @@ package com.taskflow.backend.entities;
 
 import java.time.Instant;
 
+import com.taskflow.backend.enums.RoleTypeEnum;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -23,8 +27,9 @@ public class Rol {
     @Column(name = "idrol", nullable = false)
     private Integer id;
 
-    @Column(name = "rol_name") //ROL#1: ADMIN, ROL#2: NORMUSER
-    private String rolName;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rol_name") // Valores del enum RoleTypeEnum
+    private RoleTypeEnum rolName;
 
     @Column(name = "status")
     private Boolean status;

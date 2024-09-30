@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final UserAuthProvider userAuthProvider;
+    private final JwtTokenProvider jwtTokenProvider; // Cambié a usar JwtTokenProvider para manejar tokens
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
 
     @Override
@@ -37,16 +37,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String token = headerToken.substring(7);
             logger.info("Extracted token: {}", token);
 
-            // Dentro de JwtAuthFilter.java
             try {
-                Authentication auth = userAuthProvider.validateToken(token);
+                // Usamos JwtTokenProvider para validar el token
+                Authentication auth = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
                 logger.info("Authentication successful for token: {}", token);
-            } catch (TokenValidationException e) { // Cambia a la nueva excepción
+            } catch (TokenValidationException e) {
                 logger.error("Token validation failed: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Unauthorized: " + e.getMessage()); // Mensaje adicional
+                response.getWriter().write("Unauthorized: " + e.getMessage());
                 return;
             }
 

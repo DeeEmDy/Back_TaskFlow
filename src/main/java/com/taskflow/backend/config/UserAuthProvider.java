@@ -1,24 +1,14 @@
 package com.taskflow.backend.config;
 
-import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.interfaces.DecodedJWT;
-import com.taskflow.backend.dto.UserDto;
-import com.taskflow.backend.exception.TokenValidationException; // Importa la nueva excepción
+import com.taskflow.backend.exception.JwtAuthenticationException;
 import com.taskflow.backend.services.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -27,97 +17,47 @@ import lombok.RequiredArgsConstructor;
 @Component
 public class UserAuthProvider {
 
-    @Value("${security.jwt.token.secret-key:your-256-bit-secret}")
-    private String secretKey;
-
-    @Value("${security.jwt.token.expiration:3600000}") // 1 hora en milisegundos
-    private long expirationTime;
-
+    private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
-
-    // Set para almacenar tokens revocados
     private final Set<String> revokedTokens = new HashSet<>();
-
     private static final Logger logger = LoggerFactory.getLogger(UserAuthProvider.class);
 
-    // Método para crear un token JWT
-    public String createToken(String email) {
-        Date now = new Date();
-        Date expiresAt = new Date(now.getTime() + expirationTime);
-        String token = JWT.create()
-                .withSubject(email)
-                .withIssuedAt(now)
-                .withExpiresAt(expiresAt)
-                .sign(Algorithm.HMAC256(secretKey));
-        logger.info("Token creado para el usuario: {}", email);
-        return token;
+    // Método para invalidar un token
+    public void revokeToken(String token) {
+        revokedTokens.add(token);
+        logger.info("Token revoked: {}", token);
     }
 
-    // Método para validar el token JWT
-    public Authentication validateToken(String token) {
-        if (isTokenRevoked(token)) {
-            logger.warn("Token revocado: {}", token);
-            throw new TokenValidationException("El token ha sido revocado."); // Lanza la nueva excepción
-        }
+    // Método para verificar si el token es válido
+    public boolean isTokenValid(String token) {
         try {
-            JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secretKey)).build();
-            DecodedJWT decodedJWT = verifier.verify(token);
-            UserDto user = userService.findByEmail(decodedJWT.getSubject());
-            logger.info("Token validado con éxito para el usuario: {}", decodedJWT.getSubject());
-            return new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
-        } catch (JWTVerificationException | IllegalArgumentException e) {
-            logger.error("Error en la validación del token: {}", e.getMessage());
-            throw new TokenValidationException("Token expirado o inválido.", e); // Lanza la nueva excepción
+            return jwtTokenProvider.validateToken(token);
+        } catch (Exception e) {
+            logger.warn("Token validation failed: {}", e.getMessage());
+            return false;
         }
     }
 
-    // Método para crear un token de refrescamiento
-    public String createRefreshToken(String email) {
-        Date now = new Date();
-        Date expiresAt = new Date(now.getTime() + expirationTime * 2);
-        String refreshToken = JWT.create()
-                .withSubject(email)
-                .withIssuedAt(now)
-                .withExpiresAt(expiresAt)
-                .sign(Algorithm.HMAC256(secretKey));
-        logger.info("Token de refresco creado para el usuario: {}", email);
-        return refreshToken;
+    // Método para validar un token
+    public Authentication validateToken(String token) {
+        if (!isTokenValid(token)) {
+            logger.warn("Token is invalid or has been revoked: {}", token);
+            throw new JwtAuthenticationException("Invalid token.");
+        }
+        return jwtTokenProvider.getAuthentication(token);
     }
 
     // Método para validar el token de refresco
-    public Authentication validateRefreshToken(String token) {
-        if (isTokenRevoked(token)) {
-            logger.warn("Token de refresco revocado: {}", token);
-            throw new TokenValidationException("El token de refresco ha sido revocado."); // Lanza la nueva excepción
+    public Authentication validateRefreshToken(String refreshToken) {
+        if (!isTokenValid(refreshToken)) {
+            logger.warn("Refresh token is invalid or has been revoked: {}", refreshToken);
+            throw new JwtAuthenticationException("Invalid refresh token.");
         }
-        try {
-            JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secretKey)).build();
-            DecodedJWT decodedJWT = verifier.verify(token);
-            UserDto user = userService.findByEmail(decodedJWT.getSubject());
-            logger.info("Token de refresco validado con éxito para el usuario: {}", decodedJWT.getSubject());
-            return new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
-        } catch (JWTVerificationException | IllegalArgumentException e) {
-            logger.error("Error en la validación del token de refresco: {}", e.getMessage());
-            throw new TokenValidationException("Refresh token expirado o inválido.", e); // Lanza la nueva excepción
-        }
+        return jwtTokenProvider.getAuthentication(refreshToken);
     }
 
-    // Método para invalidar un token
-    public void invalidateToken(String token) {
-        revokedTokens.add(token);
-        logger.info("Token invalidado: {}", token);
-    }
-
-    // Método para obtener el token de autenticación de un objeto Authentication
-    public String getTokenFromAuth(Authentication authentication) {
-        UserDto user = (UserDto) authentication.getPrincipal();
-        String token = createToken(user.getEmail());
-        logger.info("Token obtenido para el usuario: {}", user.getEmail());
-        return token;
-    }
-
-    // Método auxiliar para verificar si un token ha sido revocado
-    private boolean isTokenRevoked(String token) {
-        return revokedTokens.contains(token);
+    // Método para crear un nuevo token
+    public String createToken(String email) {
+        return jwtTokenProvider.createToken(email);
     }
 }

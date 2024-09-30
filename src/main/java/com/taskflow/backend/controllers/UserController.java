@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,14 +31,14 @@ public class UserController {
     private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
-    //Crear un registro de usuario
+    // Crear un registro de usuario
     @PostMapping("/create")
     public ResponseEntity<UserDto> createUser(@RequestBody SignUpDto signUpDto) {
         UserDto createdUser = userService.register(signUpDto);
-        return ResponseEntity.ok(createdUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 
-    //Leer todos los usuarios
+    // Leer todos los usuarios
     @GetMapping("/getAll")
     public ResponseEntity<List<UserDto>> getAllUsers() {
         logger.info("Request to get all users received");
@@ -45,38 +46,30 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
-    //Leer un usuario por ID
+    // Leer un usuario por ID
     @GetMapping("/getById/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
         UserDto user = userService.findById(id);
-        if (user == null) {
-            return ResponseEntity.notFound().build(); // Devuelve 404 si no se encuentra el usuario
-        }
-        return ResponseEntity.ok(user);
+        return user != null ? ResponseEntity.ok(user) : ResponseEntity.notFound().build();
     }
 
-
-    //Actualizar un usuario
+    // Actualizar un usuario
     @PutMapping("/update/{id}")
-    public ResponseEntity<UserDto> updateUser(
-            @PathVariable Integer id, 
-            @RequestBody SignUpDto updatedUser) {
+    public ResponseEntity<UserDto> updateUser(@PathVariable Integer id, @RequestBody SignUpDto updatedUser) {
         UserDto user = userService.update(id, updatedUser);
         return ResponseEntity.ok(user);
     }
 
-    //Eliminar un usuario
+    // Eliminar un usuario
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    //Actualizar la contraseña de un usuario
+    // Actualizar la contraseña de un usuario
     @PatchMapping("/update-password")
-    public ResponseEntity<Void> updatePassword(
-            @RequestParam String email, 
-            @RequestParam String newPassword) {
+    public ResponseEntity<Void> updatePassword(@RequestParam String email, @RequestParam String newPassword) {
         userService.updatePassword(email, newPassword);
         return ResponseEntity.noContent().build();
     }

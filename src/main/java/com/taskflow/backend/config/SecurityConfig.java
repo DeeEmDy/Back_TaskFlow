@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -19,7 +21,12 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private final UserAuthenticationEntryPoint userAuthenticationEntryPoint;
-    private final UserAuthProvider userAuthProvider;
+    private final JwtTokenProvider jwtTokenProvider; // Asegúrate de tener este bean
+
+    @Bean
+    public JwtAuthFilter jwtAuthFilter() {
+        return new JwtAuthFilter(jwtTokenProvider); // Crear una instancia de JwtAuthFilter
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -39,17 +46,22 @@ public class SecurityConfig {
                 .authenticationEntryPoint(userAuthenticationEntryPoint))
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(requests -> requests
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(authz -> authz
                 .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/activate").permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN") // Usar hasRole() si estás usando roles
-                .requestMatchers("/user/**").hasRole("NORMUSER") // Cambiado a hasRole
+                .requestMatchers("/admin/**").hasRole("ADMIN") 
+                .requestMatchers("/user/**").hasRole("NORMUSER")
                 .requestMatchers(HttpMethod.GET, "/user/getAll").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/auth/logout").hasAnyRole("NORMUSER", "ADMIN")
                 .anyRequest().authenticated())
-            .addFilterBefore(new JwtAuthFilter(userAuthProvider), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class); // Usar el método para obtener el filtro
 
         return http.build();
+    }
+
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(HttpMethod.OPTIONS, "/**");
     }
 }

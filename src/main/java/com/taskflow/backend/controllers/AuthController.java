@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/auth") // Prefijo común para todos los endpoints de este controlador.
+@RequestMapping("/auth")
 public class AuthController {
 
     private final UserService userService;
@@ -35,7 +35,6 @@ public class AuthController {
     // Endpoint para login
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDto> login(@RequestBody CredentialsDto credentialsDto) {
-        // Lógica para autenticar el usuario y devolver el token
         UserDto user = userService.login(credentialsDto);
         String token = userAuthProvider.createToken(user.getEmail());
 
@@ -48,12 +47,8 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody SignUpDto signUpDto) {
         try {
-            // Llama al servicio para registrar el usuario, devuelve UserDto
             UserDto newUser = userService.register(signUpDto);
-
-            // Devuelve el UserDto en la respuesta
-            return ResponseEntity.ok(newUser);
-
+            return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
         } catch (UserAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
@@ -63,7 +58,7 @@ public class AuthController {
         }
     }
 
-    // Endpoint para refrescar el token de autenticación// Endpoint para obtener un nuevo token de refresco
+    // Endpoint para refrescar el token de autenticación
     @PostMapping("/refresh-token")
     public ResponseEntity<AuthResponseDto> refreshToken(@RequestBody String refreshToken) {
         try {
@@ -71,22 +66,23 @@ public class AuthController {
             UserDto user = (UserDto) authentication.getPrincipal();
             String newToken = userAuthProvider.createToken(user.getEmail());
 
-            AuthResponseDto response = AuthResponseDto.builder()
+            return ResponseEntity.ok(AuthResponseDto.builder()
                     .token(newToken)
                     .user(user)
-                    .build();
-
-            return ResponseEntity.ok(response);
+                    .build());
         } catch (JwtAuthenticationException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null); // Respond without body
+            AuthResponseDto response = AuthResponseDto.builder()
+                    .token(null)
+                    .user(null)
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
     }
-
 
     // Endpoint para obtener información del usuario autenticado
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser(Authentication authentication) {
-        String email = authentication.getName(); // El email del usuario autenticado
+        String email = authentication.getName();
         UserDto user = userService.findByEmail(email);
         return ResponseEntity.ok(user);
     }
@@ -106,13 +102,11 @@ public class AuthController {
     @DeleteMapping("/logout")
     public ResponseEntity<String> logout(Authentication authentication) {
         try {
-            String token = userAuthProvider.getTokenFromAuth(authentication);
-            userAuthProvider.invalidateToken(token);
+            String token = authentication.getCredentials().toString();
+            userAuthProvider.revokeToken(token);
             return ResponseEntity.ok("Se ha cerrado la sesión correctamente");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Cerrar sesión fallida");
         }
     }
-      
-
 }
