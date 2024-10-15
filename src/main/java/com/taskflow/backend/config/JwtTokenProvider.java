@@ -27,14 +27,14 @@ import lombok.RequiredArgsConstructor;
 @Service
 public class JwtTokenProvider {
 
-
     private final UserMapper userMapper;
 
-    @Value("${security.jwt.token.secret-key:your-256-bit-secret}")
+    // Inyectar las propiedades de configuración
+    @Value("${spring.security.jwt.token.secret-key}")
     private String secretKey;
 
-    @Value("${security.jwt.token.expiration:3600000}") // 1 hora en milisegundos
-    private long expirationTime;
+    @Value("${spring.security.jwt.token.expiration}")
+    private long expirationTime; // Tiempo de expiración en milisegundos
 
     private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
@@ -56,23 +56,22 @@ public class JwtTokenProvider {
         try {
             JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secretKey)).build();
             DecodedJWT decodedJWT = verifier.verify(token);
-    
+
             if (decodedJWT.getExpiresAt().before(new Date())) {
                 throw new TokenValidationException("Token is expired.");
             }
-    
+
             UserDto userDto = userService.findByEmail(decodedJWT.getSubject());
             User user = userMapper.toUser(userDto);
 
             UserPrincipal userPrincipal = new UserPrincipal(user);
-    
+
             return new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
         } catch (JWTVerificationException | IllegalArgumentException e) {
             logger.error("Token validation error: {}", e.getMessage());
             throw new TokenValidationException("Token is expired or invalid.", e);
         }
     }
-    
 
     // Método para validar un token sin obtener la autenticación
     public boolean validateToken(String token) {
