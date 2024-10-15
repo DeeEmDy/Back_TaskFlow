@@ -20,12 +20,15 @@ import lombok.RequiredArgsConstructor;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String ROLE_NORMUSER = "NORMUSER";
+
     private final UserAuthenticationEntryPoint userAuthenticationEntryPoint;
-    private final JwtTokenProvider jwtTokenProvider; // Asegúrate de tener este bean
+    private final JwtTokenProvider jwtTokenProvider; //Bean del JwtTokenProvider para la inyección de dependencias a los usuarios.
 
     @Bean
     public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtTokenProvider); // Crear una instancia de JwtAuthFilter
+        return new JwtAuthFilter(jwtTokenProvider); //Creación del filtro de autenticación con el JwtTokenProvider.
     }
 
     @Bean
@@ -50,10 +53,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/activate").permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN") 
-                .requestMatchers("/user/**").hasRole("NORMUSER")
-                .requestMatchers(HttpMethod.GET, "/user/getAll").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/auth/logout").hasAnyRole("NORMUSER", "ADMIN")
+                .requestMatchers("/admin/**").hasRole(ROLE_ADMIN) 
+                .requestMatchers("/user/**").hasRole(ROLE_NORMUSER)
+                .requestMatchers(HttpMethod.GET, "/user/getAll").hasAnyRole(ROLE_ADMIN, ROLE_NORMUSER)
+                .requestMatchers(HttpMethod.DELETE, "/auth/logout").hasAnyRole(ROLE_NORMUSER, ROLE_ADMIN)
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class); // Usar el método para obtener el filtro
 
@@ -62,6 +65,6 @@ public class SecurityConfig {
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().requestMatchers(HttpMethod.OPTIONS, "/**");
+        return web -> web.ignoring().requestMatchers(HttpMethod.OPTIONS, "/**");
     }
 }

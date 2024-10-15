@@ -20,31 +20,27 @@ import com.taskflow.backend.enums.RoleTypeEnum;
 
 @Mapper(componentModel = "spring", uses = {ImageMapper.class, RoleMapper.class})
 public interface UserMapper {
+    //Eliminación de línea debido a que ocasiona error al obtener usuarios por el mapeo de rol y imagen del usuario.
+    // UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
 
-    UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
-
-    // Convertir SignUpDto a User
     @Mappings({
         @Mapping(source = "idImage", target = "idImage", qualifiedByName = "mapIdToImage"),
         @Mapping(source = "idRol", target = "role", qualifiedByName = "mapIdToRole"),
     })
     User signUpToUser(SignUpDto signUpDto);
 
-    // Convertir User a UserDto
     @Mappings({
-        @Mapping(source = "role", target = "role", qualifiedByName = "mapRoleToRole"), // Mapeo directo
-        @Mapping(source = "idImage", target = "idImage"),  // Usamos ImageMapper para convertir Image a ImageDto
+        @Mapping(source = "role", target = "role", qualifiedByName = "mapRoleToRole"),
+        @Mapping(source = "idImage", target = "idImage"),
     })
     UserDto toUserDto(User user);
 
-    // Convertir UserDto a User
     @Mappings({
         @Mapping(source = "role", target = "role", qualifiedByName = "mapRoleDtoToRole"),
-        @Mapping(source = "idImage", target = "idImage")  // Usamos ImageMapper para convertir ImageDto a Image
+        @Mapping(source = "idImage", target = "idImage")
     })
     User toUser(UserDto userDto);
 
-    // Métodos de conversión personalizados
     @Named("mapIdToImage")
     default Image mapIdToImage(Integer id) {
         if (id == null) {
@@ -70,7 +66,7 @@ public interface UserMapper {
         if (role == null) {
             return Collections.emptyList();
         }
-        return Collections.singletonList(role.getRolName().name()); // Usamos el nombre del enum
+        return Collections.singletonList(role.getRolName().name());
     }
 
     @Named("mapRoleToRole")
@@ -88,7 +84,7 @@ public interface UserMapper {
         }
         Rol role = new Rol();
         role.setId(roleDto.getId());
-        role.setRolName(RoleTypeEnum.valueOf(roleDto.getRolName())); // Convertimos el nombre a RoleTypeEnum
+        role.setRolName(RoleTypeEnum.valueOf(roleDto.getRolName()));
         return role;
     }
 }

@@ -50,11 +50,8 @@ public class UserService implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + email));
 
-        List<SimpleGrantedAuthority> authorities = user.getRole() != null
-                ? Collections.singletonList(new SimpleGrantedAuthority(user.getRole().getRolName().name()))
-                : Collections.singletonList(new SimpleGrantedAuthority("ROLE_NORMUSER"));
-
-        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), authorities);
+        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(),
+                Collections.singletonList(new SimpleGrantedAuthority(user.getRole() != null ? user.getRole().getRolName().name() : "ROLE_NORMUSER")));
     }
 
     public UserDto login(@NonNull CredentialsDto credentialsDto) {
@@ -201,8 +198,8 @@ public class UserService implements UserDetailsService {
                 .idCard(user.getIdCard())
                 .phoneNumber(user.getPhoneNumber())
                 .email(user.getEmail())
-                .idImage(imageMapper.toImageDto(user.getIdImage()))
-                .role(roleMapper.toRoleDto(user.getRole()))
+                .idImage(user.getIdImage() != null ? imageMapper.toImageDto(user.getIdImage()) : null) // Mapeo de imagen
+                .role(user.getRole() != null ? roleMapper.toRoleDto(user.getRole()) : null) // Mapeo de rol
                 .userVerified(user.getUserVerified())
                 .status(user.getStatus())
                 .createdAt(user.getCreatedAt())
@@ -216,10 +213,7 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("Ya existe un usuario con ese correo electrónico asignado: " + updatedUserDto.getEmail());
         }
         if (!user.getIdCard().equals(updatedUserDto.getIdCard()) && userRepository.existsByIdCard(updatedUserDto.getIdCard())) {
-            throw new IllegalArgumentException("Ese número de cédula ya se encuentra en uso: " + updatedUserDto.getIdCard());
-        }
-        if (!user.getPhoneNumber().equals(updatedUserDto.getPhoneNumber()) && userRepository.existsByPhoneNumber(updatedUserDto.getPhoneNumber())) {
-            throw new IllegalArgumentException("El número de teléfono ya se encuentra en uso: " + updatedUserDto.getPhoneNumber());
+            throw new IllegalArgumentException("Ya existe un usuario con esa cédula asignada: " + updatedUserDto.getIdCard());
         }
     }
 
@@ -228,16 +222,15 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("Ya existe un usuario con ese correo electrónico: " + signUpDto.getEmail());
         }
         if (userRepository.existsByIdCard(signUpDto.getIdCard())) {
-            throw new IllegalArgumentException("Ese número de cédula ya se encuentra en uso: " + signUpDto.getIdCard());
-        }
-        if (userRepository.existsByPhoneNumber(signUpDto.getPhoneNumber())) {
-            throw new IllegalArgumentException("El número de teléfono ya se encuentra en uso: " + signUpDto.getPhoneNumber());
+            throw new IllegalArgumentException("Ya existe un usuario con esa cédula: " + signUpDto.getIdCard());
         }
     }
 
+    //Método para eliminar un registro de usuario.
     public void delete(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("No se ha encontrado un usuario con ese ID: " + id));
         userRepository.delete(user);
+        logger.info("Usuario eliminado: {}", user);
     }
 }

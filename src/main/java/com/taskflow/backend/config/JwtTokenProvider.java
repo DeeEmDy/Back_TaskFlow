@@ -27,6 +27,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 public class JwtTokenProvider {
 
+
+    private final UserMapper userMapper;
+
     @Value("${security.jwt.token.secret-key:your-256-bit-secret}")
     private String secretKey;
 
@@ -59,7 +62,8 @@ public class JwtTokenProvider {
             }
     
             UserDto userDto = userService.findByEmail(decodedJWT.getSubject());
-            User user = UserMapper.INSTANCE.toUser(userDto);
+            User user = userMapper.toUser(userDto);
+
             UserPrincipal userPrincipal = new UserPrincipal(user);
     
             return new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
