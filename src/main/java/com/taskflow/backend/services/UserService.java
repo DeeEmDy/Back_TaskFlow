@@ -22,6 +22,7 @@ import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
 import com.taskflow.backend.entities.User;
 import com.taskflow.backend.enums.RoleTypeEnum;
+import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.mappers.ImageMapper;
 import com.taskflow.backend.mappers.RoleMapper;
 import com.taskflow.backend.repositories.ImageRepository;
@@ -209,22 +210,27 @@ public class UserService implements UserDetailsService {
                 .build();
     }
 
-    private void validateUniqueFieldsForUpdate(User user, SignUpDto updatedUserDto) {
-        // Verificaciones para campos únicos
-        if (!user.getEmail().equals(updatedUserDto.getEmail()) && userRepository.existsByEmail(updatedUserDto.getEmail())) {
-            throw new IllegalArgumentException("Ya existe un usuario con ese correo electrónico asignado: " + updatedUserDto.getEmail());
+    private void validateUniqueFields(SignUpDto signUpDto) {
+        if (userRepository.existsByEmail(signUpDto.getEmail())) {
+            throw new UserAlreadyExistsException("Ya existe un usuario con ese correo electrónico: " + signUpDto.getEmail());
         }
-        if (!user.getIdCard().equals(updatedUserDto.getIdCard()) && userRepository.existsByIdCard(updatedUserDto.getIdCard())) {
-            throw new IllegalArgumentException("Ya existe un usuario con esa cédula asignada: " + updatedUserDto.getIdCard());
+        if (userRepository.existsByIdCard(signUpDto.getIdCard())) {
+            throw new UserAlreadyExistsException("Ya existe un usuario con esa cédula: " + signUpDto.getIdCard());
+        }
+        if (userRepository.existsByPhoneNumber(signUpDto.getPhoneNumber())) {
+            throw new UserAlreadyExistsException("Ya existe un usuario con ese número de teléfono: " + signUpDto.getPhoneNumber());
         }
     }
 
-    private void validateUniqueFields(SignUpDto signUpDto) {
-        if (userRepository.existsByEmail(signUpDto.getEmail())) {
-            throw new IllegalArgumentException("Ya existe un usuario con ese correo electrónico: " + signUpDto.getEmail());
+    private void validateUniqueFieldsForUpdate(User user, SignUpDto updatedUserDto) {
+        if (!user.getEmail().equals(updatedUserDto.getEmail()) && userRepository.existsByEmail(updatedUserDto.getEmail())) {
+            throw new UserAlreadyExistsException("Ya existe un usuario con ese correo electrónico asignado: " + updatedUserDto.getEmail());
         }
-        if (userRepository.existsByIdCard(signUpDto.getIdCard())) {
-            throw new IllegalArgumentException("Ya existe un usuario con esa cédula: " + signUpDto.getIdCard());
+        if (!user.getIdCard().equals(updatedUserDto.getIdCard()) && userRepository.existsByIdCard(updatedUserDto.getIdCard())) {
+            throw new UserAlreadyExistsException("Ya existe un usuario con esa cédula asignada: " + updatedUserDto.getIdCard());
+        }
+        if (!user.getPhoneNumber().equals(updatedUserDto.getPhoneNumber()) && userRepository.existsByPhoneNumber(updatedUserDto.getPhoneNumber())) {
+            throw new UserAlreadyExistsException("Ya existe un usuario con ese número de teléfono asignado: " + updatedUserDto.getPhoneNumber());
         }
     }
 
@@ -236,12 +242,15 @@ public class UserService implements UserDetailsService {
         logger.info("Usuario eliminado: {}", user);
     }
 
-    //Método para crear un registro de usuario, en este se puede asignar el ROL del usuario para así poder crear ADMINS.
+    //Método para crear un nuevo usuario.
     @Transactional
     public UserDto createUser(@NonNull SignUpDto signUpDto) {
         if (signUpDto.getIdImage() == null) {
             throw new IllegalArgumentException("El ID de la imagen no puede ser nulo");
         }
+
+        // Validar campos únicos primero
+        validateUniqueFields(signUpDto);
 
         Image image = imageRepository.findById(signUpDto.getIdImage())
                 .orElseThrow(() -> new RuntimeException("La imagen no se ha encontrado"));
@@ -269,9 +278,6 @@ public class UserService implements UserDetailsService {
 
         logger.info("Nuevo usuario creado: {}", newUser);
 
-        // Validar campos únicos
-        validateUniqueFields(signUpDto);
-
         // Guardar el usuario
         User savedUser = userRepository.save(newUser);
         logger.info("Usuario guardado en la base de datos: {}", savedUser);
@@ -288,4 +294,5 @@ public class UserService implements UserDetailsService {
 
         return mapToUserDto(savedUser);
     }
+
 }

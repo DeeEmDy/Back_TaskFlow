@@ -8,7 +8,6 @@ import lombok.Data;
 @AllArgsConstructor
 @Builder
 @Data
-
 public class ErrorDto {
 
     private String error;
