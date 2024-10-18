@@ -50,6 +50,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/activate").permitAll()
                 .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/user/getAll").hasAnyAuthority("ROLE_ADMIN", "ROLE_NORMUSER")
+                .requestMatchers("/user/create").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/user/**").hasAuthority("ROLE_NORMUSER")
                 .requestMatchers(HttpMethod.DELETE, "/auth/logout").hasAnyAuthority("ROLE_NORMUSER", "ROLE_ADMIN")
                 .anyRequest().authenticated())

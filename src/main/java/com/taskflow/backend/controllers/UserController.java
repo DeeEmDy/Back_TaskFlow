@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,12 +32,13 @@ public class UserController {
     private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
+    // Endpoint para crear un usuario con el método createUser. 
     @PostMapping("/create")
-    public ResponseEntity<UserDto> createUser(@RequestBody SignUpDto signUpDto) {
-        logger.info("Attempting to create a new user");
-        UserDto createdUser = userService.register(signUpDto);
-        logger.info("User created successfully with ID: {}", createdUser.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+    public ResponseEntity<UserDto> createUser(@RequestBody SignUpDto newUser) {
+        logger.info("Attempting to create new user with email: {}", newUser.getEmail());
+        UserDto user = userService.createUser(newUser);
+        logger.info("User created successfully with email: {}", newUser.getEmail());
+        return ResponseEntity.ok(user);
     }
 
     @GetMapping("/getAll")
