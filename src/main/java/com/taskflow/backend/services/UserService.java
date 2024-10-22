@@ -21,7 +21,7 @@ import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
 import com.taskflow.backend.entities.User;
-import com.taskflow.backend.enums.RoleTypeEnum;
+import com.taskflow.backend.exception.JwtAuthenticationException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.mappers.ImageMapper;
 import com.taskflow.backend.mappers.RoleMapper;
@@ -77,18 +77,34 @@ public class UserService implements UserDetailsService {
     public UserDto register(@NonNull SignUpDto signUpDto) {
         logger.info("Iniciando el registro del usuario: {}", signUpDto);
 
+        // Validación de ID de imagen y rol.
         if (signUpDto.getIdImage() == null || signUpDto.getIdRol() == null) {
             logger.error("Los IDs de imagen y rol no pueden ser nulos: idImage={}, idRol={}", signUpDto.getIdImage(), signUpDto.getIdRol());
             throw new IllegalArgumentException("Los IDs de imagen y rol no pueden ser nulos");
         }
 
+        // Obtener la imagen.
         Image image = imageRepository.findById(signUpDto.getIdImage())
-                .orElseThrow(() -> new RuntimeException("La imagen no se ha encontrado"));
+                .orElseThrow(() -> {
+                    logger.error("Imagen no encontrada con ID: {}", signUpDto.getIdImage());
+                    return new RuntimeException("La imagen no se ha encontrado");
+                });
 
-        //Para el registro de un usuario, se asigna el rol ROLE_NORMUSER por defecto.
-        Rol rolNormUser = rolRepository.findByRolName(RoleTypeEnum.ROLE_NORMUSER.name())
-                .orElseThrow(() -> new RuntimeException("El rol ROLE_NORMUSER no se ha encontrado"));
+        // Obtener el rol basado en el ID del rol proporcionado.
+        Rol rol = rolRepository.findById(signUpDto.getIdRol())
+                .orElseThrow(() -> {
+                    logger.error("Rol no encontrado con ID: {}", signUpDto.getIdRol());
+                    return new RuntimeException("El rol no se ha encontrado");
+                });
 
+        // Validar campos únicos antes de continuar.
+        validateUniqueFields(signUpDto);
+
+        // Generar el token de activación y la fecha de expiración.
+        String activationToken = tokenService.generateActivationToken();
+        Instant tokenExpiration = tokenService.getTokenExpiration();
+
+        // Crear el nuevo usuario.
         User newUser = User.builder()
                 .name(signUpDto.getName())
                 .firstSurname(signUpDto.getFirstSurname())
@@ -96,30 +112,29 @@ public class UserService implements UserDetailsService {
                 .idCard(signUpDto.getIdCard())
                 .phoneNumber(signUpDto.getPhoneNumber())
                 .idImage(image)
-                .role(rolNormUser)
+                .role(rol) // Asignar el rol obtenido
                 .email(signUpDto.getEmail())
                 .password(passwordEncoder.encode(signUpDto.getPassword()))
                 .userVerified(false)
-                .status(signUpDto.getStatus())
+                .status(signUpDto.getStatus() != null && signUpDto.getStatus()) // Valor predeterminado
+                .activationToken(activationToken) // Almacenar el token
+                .activationTokenExpiration(tokenExpiration) // Almacenar la fecha de expiración
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
 
         logger.info("Nuevo usuario creado: {}", newUser);
-        validateUniqueFields(signUpDto);
 
+        // Guardar el nuevo usuario.
         User savedUser = userRepository.save(newUser);
         logger.info("Usuario guardado en la base de datos: {}", savedUser);
 
-        String activationToken = tokenService.generateActivationToken();
-        savedUser.setActivationToken(activationToken);
-        savedUser.setActivationTokenExpiration(tokenService.getTokenExpiration());
-
-        userRepository.save(savedUser);
+        // Enviar el correo de activación.
         String activationLink = "http://localhost:8080/auth/activate?token=" + activationToken;
         emailService.sendActivationEmail(savedUser.getEmail(), activationLink);
         logger.info("Correo de activación enviado a: {}", savedUser.getEmail());
 
+        // Mapear el usuario guardado a UserDto y retornarlo.
         return mapToUserDto(savedUser);
     }
 
@@ -131,14 +146,18 @@ public class UserService implements UserDetailsService {
 
     public boolean activateUser(String token) {
         User user = userRepository.findByActivationToken(token);
-        if (user != null && user.getActivationTokenExpiration().isAfter(Instant.now())) {
-            user.setUserVerified(true);
-            user.setActivationToken(null);
-            user.setActivationTokenExpiration(null);
-            userRepository.save(user);
-            return true;
+        if (user == null) {
+            throw new JwtAuthenticationException("Token inválido"); // Cambiado a JwtAuthenticationException
         }
-        return false;
+        if (user.getActivationTokenExpiration().isBefore(Instant.now())) {
+            throw new JwtAuthenticationException("Token expirado"); // Cambiado a JwtAuthenticationException
+        }
+
+        user.setUserVerified(true);
+        user.clearActivationToken(); // Uso de tu método para limpiar
+        userRepository.save(user);
+
+        return true; // Activación exitosa
     }
 
     public boolean updatePassword(String email, String newPassword) {

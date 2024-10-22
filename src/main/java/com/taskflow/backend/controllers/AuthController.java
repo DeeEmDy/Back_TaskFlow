@@ -54,6 +54,7 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Ha ocurrido un error"));
         }
     }
@@ -88,19 +89,23 @@ public class AuthController {
     }
 
     // Endpoint para activar la cuenta de un usuario
-    @PostMapping("/activate")
+    @GetMapping("/activate")
     public ResponseEntity<String> activateAccount(@RequestParam("token") String token) {
-        boolean success = userService.activateUser(token);
-        if (success) {
-            return ResponseEntity.ok("La cuenta ha sido activada correctamente");
+        boolean activated = userService.activateUser(token);
+
+        if (activated) {
+            return ResponseEntity.ok("Account activated successfully!");
         } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("La activación de la cuenta ha fallado");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired activation token.");
         }
     }
 
     // Endpoint para cerrar sesión del usuario.
     @DeleteMapping("/logout")
     public ResponseEntity<String> logout(Authentication authentication) {
+        if (authentication == null || authentication.getCredentials() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No se ha podido cerrar sesión. Token inválido.");
+        }
         try {
             String token = authentication.getCredentials().toString();
             userAuthProvider.revokeToken(token);
@@ -109,4 +114,5 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Cerrar sesión fallida");
         }
     }
+
 }

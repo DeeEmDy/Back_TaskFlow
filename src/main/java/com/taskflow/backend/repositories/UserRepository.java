@@ -17,4 +17,5 @@ public interface UserRepository extends JpaRepository <User, Integer> {
     boolean existsByPhoneNumber(String phoneNumber); //Para verificar si el número de teléfono ya existe
 
     User findByActivationToken(String token); // Agregado para buscar por token de activación
+    
 }
