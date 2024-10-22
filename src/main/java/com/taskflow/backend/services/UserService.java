@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.management.relation.RoleNotFoundException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
@@ -21,6 +23,7 @@ import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
 import com.taskflow.backend.entities.User;
+import com.taskflow.backend.exception.ImageNotFoundException;
 import com.taskflow.backend.exception.JwtAuthenticationException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.mappers.ImageMapper;
@@ -74,7 +77,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public UserDto register(@NonNull SignUpDto signUpDto) {
+    public UserDto register(@NonNull SignUpDto signUpDto) throws RoleNotFoundException {
         logger.info("Iniciando el registro del usuario: {}", signUpDto);
 
         // Validación de ID de imagen y rol.
@@ -87,18 +90,18 @@ public class UserService implements UserDetailsService {
         Image image = imageRepository.findById(signUpDto.getIdImage())
                 .orElseThrow(() -> {
                     logger.error("Imagen no encontrada con ID: {}", signUpDto.getIdImage());
-                    return new RuntimeException("La imagen no se ha encontrado");
+                    return new ImageNotFoundException("La imagen no se ha encontrado");
                 });
 
         // Obtener el rol basado en el ID del rol proporcionado.
         Rol rol = rolRepository.findById(signUpDto.getIdRol())
                 .orElseThrow(() -> {
                     logger.error("Rol no encontrado con ID: {}", signUpDto.getIdRol());
-                    return new RuntimeException("El rol no se ha encontrado");
+                    return new RoleNotFoundException("El rol no se ha encontrado");
                 });
 
         // Validar campos únicos antes de continuar.
-        validateUniqueFields(signUpDto);
+        validateUniqueFields(signUpDto); // Asegúrate de que esto lance las excepciones correctas
 
         // Generar el token de activación y la fecha de expiración.
         String activationToken = tokenService.generateActivationToken();
@@ -112,13 +115,13 @@ public class UserService implements UserDetailsService {
                 .idCard(signUpDto.getIdCard())
                 .phoneNumber(signUpDto.getPhoneNumber())
                 .idImage(image)
-                .role(rol) // Asignar el rol obtenido
+                .role(rol)
                 .email(signUpDto.getEmail())
                 .password(passwordEncoder.encode(signUpDto.getPassword()))
                 .userVerified(false)
-                .status(signUpDto.getStatus() != null && signUpDto.getStatus()) // Valor predeterminado
-                .activationToken(activationToken) // Almacenar el token
-                .activationTokenExpiration(tokenExpiration) // Almacenar la fecha de expiración
+                .status(signUpDto.getStatus() != null && signUpDto.getStatus())
+                .activationToken(activationToken)
+                .activationTokenExpiration(tokenExpiration)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

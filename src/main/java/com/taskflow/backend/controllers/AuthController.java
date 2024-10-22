@@ -2,6 +2,10 @@ package com.taskflow.backend.controllers;
 
 import java.util.Map;
 
+import javax.management.relation.RoleNotFoundException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,10 +22,14 @@ import com.taskflow.backend.dto.AuthResponseDto;
 import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
+import com.taskflow.backend.exception.IdCardAlreadyExistsException;
+import com.taskflow.backend.exception.ImageNotFoundException;
 import com.taskflow.backend.exception.JwtAuthenticationException;
+import com.taskflow.backend.exception.PhoneNumberAlreadyExistsException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.services.UserService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -29,6 +37,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/auth")
 public class AuthController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     private final UserService userService;
     private final UserAuthProvider userAuthProvider;
 
@@ -45,18 +54,26 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody SignUpDto signUpDto) {
+    public ResponseEntity<Object> registerUser(@Valid @RequestBody SignUpDto signUpDto) {
         try {
+            // Intentar registrar al usuario.
             UserDto newUser = userService.register(signUpDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
-        } catch (UserAlreadyExistsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        } catch (IdCardAlreadyExistsException | PhoneNumberAlreadyExistsException | UserAlreadyExistsException | ImageNotFoundException e) {
+            logger.warn("Error en el registro: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(createErrorResponse("BAD_REQUEST", e.getMessage()));
+        } catch (RoleNotFoundException e) {
+            logger.warn("Error en el registro: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(createErrorResponse("NOT_FOUND", e.getMessage()));
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Ha ocurrido un error"));
+            logger.error("Error inesperado: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(createErrorResponse("INTERNAL_SERVER_ERROR", "Error interno del servidor"));
         }
+    }
+
+    // Método para crear la respuesta de error
+    private Map<String, String> createErrorResponse(String errorCode, String message) {
+        return Map.of("error", message, "code", errorCode);
     }
 
     // Endpoint para refrescar el token de autenticación
