@@ -60,4 +60,10 @@ public class UserAuthProvider {
     public String createToken(String email) {
         return jwtTokenProvider.createToken(email);
     }
+
+    // Método para verificar si el token ha sido revocado
+    public boolean isTokenRevoked(String token) {
+        return revokedTokens.contains(token);
+    }
+
 }

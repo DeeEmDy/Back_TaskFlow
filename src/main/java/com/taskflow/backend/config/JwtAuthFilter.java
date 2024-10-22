@@ -20,8 +20,9 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
-
+    
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserAuthProvider userAuthProvider;
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
 
     @Override
@@ -32,17 +33,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = extractToken(request);
         logger.info("Processing request to {}", request.getRequestURI());
-        logger.info("Authorization header from IP {}: {}", request.getRemoteAddr(), request.getHeader(HttpHeaders.AUTHORIZATION));
 
         if (token != null) {
             logger.info("Extracted token: {}", token);
+
+            // Verificar si el token ha sido revocado
+            if (userAuthProvider.isTokenRevoked(token)) {
+                logger.warn("Token has been revoked: {}", token);
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                return;
+            }
 
             try {
                 Authentication auth = jwtTokenProvider.getAuthentication(token);
                 if (auth != null) {
                     SecurityContextHolder.getContext().setAuthentication(auth);
-                    logger.info("Authentication successful for token: {}", token);
-                    logger.info("User {} authenticated with authorities: {}", auth.getName(), auth.getAuthorities());
                 } else {
                     logger.warn("Authentication failed for token: {}", token);
                     SecurityContextHolder.clearContext();
@@ -55,8 +61,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                 return;
             }
-        } else {
-            logger.warn("No valid token found in the request from IP: {}", request.getRemoteAddr());
         }
 
         filterChain.doFilter(request, response);

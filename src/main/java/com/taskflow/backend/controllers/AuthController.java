@@ -20,6 +20,7 @@ import com.taskflow.backend.exception.*;
 import com.taskflow.backend.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 
 @RequiredArgsConstructor
 @RestController
@@ -45,9 +46,8 @@ public class AuthController {
             logger.warn("Error en login: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error(new ApiError("UNAUTHORIZED", e.getMessage(), null)));
-        }
-        // Nuevo catch para credenciales inválidas
-         catch (IllegalArgumentException e) {
+        } // Nuevo catch para credenciales inválidas
+        catch (IllegalArgumentException e) {
             logger.warn("Error en login: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error(new ApiError("FORBIDDEN", e.getMessage(), null)));
@@ -139,13 +139,23 @@ public class AuthController {
 
     // Endpoint para cerrar sesión del usuario
     @DeleteMapping("/logout")
-    public ResponseEntity<ApiResponse<String>> logout(Authentication authentication) {
-        if (authentication == null || authentication.getCredentials() == null) {
+    public ResponseEntity<ApiResponse<String>> logout(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+        // Verificar si el encabezado de autorización está presente y es válido
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error(new ApiError("UNAUTHORIZED", "No se ha podido cerrar sesión. Token inválido.", null)));
         }
+
+        String token = authorizationHeader.substring(7); // Extrae el token
+
         try {
-            String token = authentication.getCredentials().toString();
+            // Verificar si el token ya ha sido revocado
+            if (userAuthProvider.isTokenRevoked(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error(new ApiError("UNAUTHORIZED", "El token ya ha sido revocado.", null)));
+            }
+
+            // Llama al método para revocar el token
             userAuthProvider.revokeToken(token);
             return ResponseEntity.ok(ApiResponse.success("Se ha cerrado la sesión correctamente", "Sesión cerrada con éxito."));
         } catch (Exception e) {

@@ -21,11 +21,12 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private final UserAuthenticationEntryPoint userAuthenticationEntryPoint;
+    private final UserAuthProvider userAuthProvider;
     private final JwtTokenProvider jwtTokenProvider;
 
     @Bean
     public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtTokenProvider);
+        return new JwtAuthFilter(jwtTokenProvider, userAuthProvider);
     }
 
     @Bean

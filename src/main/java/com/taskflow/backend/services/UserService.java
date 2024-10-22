@@ -319,4 +319,9 @@ public class UserService implements UserDetailsService {
         return mapToUserDto(savedUser);
     }
 
+    public boolean isUserAuthenticated(String email) {
+        UserDto user = findByEmail(email);
+        return user != null && user.getUserVerified();
+    }
+
 }
