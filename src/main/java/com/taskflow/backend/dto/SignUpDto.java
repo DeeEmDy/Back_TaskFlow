@@ -18,14 +18,17 @@ public class SignUpDto {
 
     @NotBlank(message = "El nombre no puede estar vacío")
     @Size(min = 3, max = 12, message = "El nombre debe tener entre 3 y 12 caracteres")
+    @Pattern(regexp = "^[A-Za-záéíóúÁÉÍÓÚñÑ´ ]+$", message = "El nombre solo puede contener letras y espacios")
     private String name;
 
     @NotBlank(message = "El primer apellido no puede estar vacío")
     @Size(min = 5, max = 15, message = "El primer apellido debe tener entre 5 y 15 caracteres")
+    @Pattern(regexp = "^[A-Za-záéíóúÁÉÍÓÚñÑ´ ]+$", message = "El primer apellido solo puede contener letras y espacios")
     private String firstSurname;
 
     @NotBlank(message = "El segundo apellido no puede estar vacío")
     @Size(min = 5, max = 15, message = "El segundo apellido debe tener entre 5 y 15 caracteres")
+    @Pattern(regexp = "^[A-Za-záéíóúÁÉÍÓÚñÑ´ ]+$", message = "El segundo apellido solo puede contener letras y espacios")
     private String secondSurname;
 
     @NotBlank(message = "El número de cédula no puede estar vacío")

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.taskflow.backend.config.UserAuthProvider;
+import com.taskflow.backend.dto.ApiError;
+import com.taskflow.backend.dto.ApiResponse;
 import com.taskflow.backend.dto.AuthResponseDto;
 import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
@@ -28,6 +31,7 @@ import com.taskflow.backend.exception.JwtAuthenticationException;
 import com.taskflow.backend.exception.PhoneNumberAlreadyExistsException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.services.UserService;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -54,26 +58,24 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Object> registerUser(@Valid @RequestBody SignUpDto signUpDto) {
+    public ResponseEntity<ApiResponse<Object>> registerUser(@Valid @RequestBody SignUpDto signUpDto) {
         try {
             // Intentar registrar al usuario.
             UserDto newUser = userService.register(signUpDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
+            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(newUser, "Usuario registrado con éxito."));
         } catch (IdCardAlreadyExistsException | PhoneNumberAlreadyExistsException | UserAlreadyExistsException | ImageNotFoundException e) {
             logger.warn("Error en el registro: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(createErrorResponse("BAD_REQUEST", e.getMessage()));
+            ApiError apiError = new ApiError("BAD_REQUEST", e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(apiError));
         } catch (RoleNotFoundException e) {
             logger.warn("Error en el registro: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(createErrorResponse("NOT_FOUND", e.getMessage()));
+            ApiError apiError = new ApiError("NOT_FOUND", e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(apiError));
         } catch (Exception e) {
             logger.error("Error inesperado: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(createErrorResponse("INTERNAL_SERVER_ERROR", "Error interno del servidor"));
+            ApiError apiError = new ApiError("INTERNAL_SERVER_ERROR", "Error interno del servidor", null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(apiError));
         }
-    }
-
-    // Método para crear la respuesta de error
-    private Map<String, String> createErrorResponse(String errorCode, String message) {
-        return Map.of("error", message, "code", errorCode);
     }
 
     // Endpoint para refrescar el token de autenticación
