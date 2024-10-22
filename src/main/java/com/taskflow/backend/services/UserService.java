@@ -23,7 +23,9 @@ import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
 import com.taskflow.backend.entities.User;
+import com.taskflow.backend.exception.EmailNotFoundException;
 import com.taskflow.backend.exception.ImageNotFoundException;
+import com.taskflow.backend.exception.InvalidCredentialsException;
 import com.taskflow.backend.exception.JwtAuthenticationException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.mappers.ImageMapper;
@@ -61,10 +63,10 @@ public class UserService implements UserDetailsService {
 
     public UserDto login(@NonNull CredentialsDto credentialsDto) {
         User user = userRepository.findByEmail(credentialsDto.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + credentialsDto.getEmail()));
+                .orElseThrow(() -> new EmailNotFoundException("No se ha encontrado un usuario con ese email: " + credentialsDto.getEmail()));
 
         if (!passwordEncoder.matches(credentialsDto.getPassword(), user.getPassword())) {
-            throw new UsernameNotFoundException("Contraseña incorrecta");
+            throw new InvalidCredentialsException("Error al iniciar sesión, el correo electrónico o la contraseña no son correctas");
         }
 
         if (!user.getUserVerified()) {
