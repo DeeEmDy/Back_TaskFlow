@@ -15,6 +15,8 @@ import com.taskflow.backend.dto.ValidationError;
 import com.taskflow.backend.exception.IdCardAlreadyExistsException;
 import com.taskflow.backend.exception.PhoneNumberAlreadyExistsException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
+import com.taskflow.backend.exception.PasswordValidationException;
+import com.taskflow.backend.exception.PasswordMismatchException;
 
 @ControllerAdvice
 public class GlobalExceptionHandlerController {
@@ -37,6 +39,18 @@ public class GlobalExceptionHandlerController {
         return new ResponseEntity<>(ApiResponse.error(apiError), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(PasswordValidationException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePasswordValidationException(PasswordValidationException ex) {
+        ApiError apiError = new ApiError(ex.getCode(), ex.getMessage(), null);
+        return new ResponseEntity<>(ApiResponse.error(apiError), HttpStatus.BAD_REQUEST);
+    }
+    
+    @ExceptionHandler(PasswordMismatchException.class) // Nuevo manejador para la excepción de coincidencia de contraseñas
+    public ResponseEntity<ApiResponse<Object>> handlePasswordMismatchException(PasswordMismatchException ex) {
+        ApiError apiError = new ApiError("PASSWORD_MISMATCH", ex.getMessage(), null);
+        return new ResponseEntity<>(ApiResponse.error(apiError), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException e) {
         List<ValidationError> validationErrors = e.getBindingResult().getFieldErrors().stream()
@@ -46,4 +60,5 @@ public class GlobalExceptionHandlerController {
         ApiError apiError = new ApiError("VALIDATION_ERROR", "Errores de validación en los datos ingresados", validationErrors);
         return new ResponseEntity<>(ApiResponse.error(apiError), HttpStatus.BAD_REQUEST);
     }
+    
 }

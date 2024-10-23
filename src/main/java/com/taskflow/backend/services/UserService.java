@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
+import com.taskflow.backend.dto.UpdatePasswordDto;
 import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
@@ -27,6 +28,7 @@ import com.taskflow.backend.exception.EmailNotFoundException;
 import com.taskflow.backend.exception.ImageNotFoundException;
 import com.taskflow.backend.exception.InvalidCredentialsException;
 import com.taskflow.backend.exception.JwtAuthenticationException;
+import com.taskflow.backend.exception.PasswordValidationException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.mappers.ImageMapper;
 import com.taskflow.backend.mappers.RoleMapper;
@@ -165,14 +167,26 @@ public class UserService implements UserDetailsService {
         return true; // Activación exitosa
     }
 
-    public boolean updatePassword(String email, String newPassword) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + email));
-
-        user.setPassword(passwordEncoder.encode(newPassword));
+    public boolean updatePassword(UpdatePasswordDto updatePasswordDto) {
+        logger.info("Iniciando actualización de contraseña para el usuario: {}", updatePasswordDto.getEmail());
+    
+        // Buscar al usuario
+        User user = userRepository.findByEmail(updatePasswordDto.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + updatePasswordDto.getEmail()));
+    
+        // Verificar si las contraseñas coinciden
+        if (!updatePasswordDto.getNewPassword().equals(updatePasswordDto.getRepeatNewPassword())) {
+            throw new PasswordValidationException("Las contraseñas no coinciden", "PASSWORD_MISMATCH");
+        }
+    
+        // Actualizar la contraseña
+        user.setPassword(passwordEncoder.encode(updatePasswordDto.getNewPassword()));
         userRepository.save(user);
+    
+        logger.info("Contraseña actualizada exitosamente para el usuario: {}", updatePasswordDto.getEmail());
         return true;
     }
+    
 
     public List<UserDto> findAll() {
         logger.info("Usuarios obtenidos: {}", userRepository.findAll());

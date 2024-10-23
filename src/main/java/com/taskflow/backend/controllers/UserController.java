@@ -10,19 +10,29 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.taskflow.backend.dto.ApiError;
 import com.taskflow.backend.dto.ApiResponse;
 import com.taskflow.backend.dto.SignUpDto;
+import com.taskflow.backend.dto.UpdatePasswordDto;
 import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.exception.IdCardAlreadyExistsException;
+import com.taskflow.backend.exception.PasswordValidationException;
 import com.taskflow.backend.exception.PhoneNumberAlreadyExistsException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.services.UserService;
-import com.taskflow.backend.dto.ApiError;
 
-import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @RestController
@@ -126,17 +136,37 @@ public class UserController {
     }
 
     @PatchMapping("/update-password")
-    public ResponseEntity<ApiResponse<Void>> updatePassword(@RequestParam String email, @RequestParam String newPassword) {
-        logger.info("Iniciando a cambiar la contraseña del usuario con el email: {}", email);
+    public ResponseEntity<ApiResponse<Void>> updatePassword(@Valid @RequestBody UpdatePasswordDto updatePasswordDto) {
+        logger.info("Iniciando cambio de contraseña para el usuario: {}", updatePasswordDto.getEmail());
+
         try {
-            userService.updatePassword(email, newPassword);
-            logger.info("Contraseña cambiada para el usuario con el email: {}", email);
+            userService.updatePassword(updatePasswordDto);
             return ResponseEntity.ok()
                     .body(ApiResponse.success(null, "Contraseña actualizada exitosamente"));
         } catch (UsernameNotFoundException ex) {
-            logger.warn("No se ha encontrado un usuario con el email: {}", email);
-            ApiError apiError = new ApiError("USUARIO NO ENCONTRADO", "Error al cambiar la contraseña del usuario con el email " + email + " not found.", null);
+            logger.warn("Usuario no encontrado: {}", ex.getMessage());
+            ApiError apiError = new ApiError("USUARIO_NO_ENCONTRADO", "No se encontró un usuario con el email: " + updatePasswordDto.getEmail(), null);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(apiError));
+        } catch (PasswordValidationException ex) {
+            logger.warn("Error en validación de contraseña: {}", ex.getMessage());
+            ApiError apiError;
+
+            // Manejo específico para la validación de contraseñas que no coinciden
+            if (ex.getCode().equals("PASSWORD_MISMATCH")) {
+                apiError = new ApiError("VALIDATION_PASSWORDS_ERROR", "Error al cambiar la contraseña, las contraseñas ingresadas no coinciden.", null);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error(apiError));
+            }
+
+            // Manejo genérico para otros errores de validación
+            apiError = new ApiError(ex.getCode(), ex.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(apiError));
+        } catch (Exception ex) {
+            logger.error("Error inesperado: {}", ex.getMessage(), ex);
+            ApiError apiError = new ApiError("ERROR_INTERNO", "Ha ocurrido un error inesperado en el servidor", null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error(apiError));
         }
     }
