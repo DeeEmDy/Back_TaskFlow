@@ -35,32 +35,32 @@ public class UserController {
 
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<UserDto>> createUser(@Valid @RequestBody SignUpDto newUser) {
-        logger.info("Attempting to create new user with email: {}", newUser.getEmail());
+        logger.info("Iniciando con el registro de usuario: {}", newUser.getEmail());
         try {
             UserDto user = userService.createUser(newUser);
-            logger.info("User created successfully with email: {}", newUser.getEmail());
+            logger.info("Usuario creado con el email: {}", newUser.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success(user, "User created successfully"));
+                    .body(ApiResponse.success(user, "Usuario creado exitosamente"));
         } catch (UserAlreadyExistsException ex) {
-            logger.error("Error creating user: User already exists with email: {}", newUser.getEmail());
+            logger.error("Error al crear el usuario, ya existe un usuario con el email: {}", newUser.getEmail());
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.error(new ApiError("USER_ALREADY_EXISTS", "User with email " + newUser.getEmail() + " already exists.", null)));
+                    .body(ApiResponse.error(new ApiError("USUARIO YA EXISTENTE", "Usuario con el email " + newUser.getEmail() + " ya existe.", null)));
         } catch (IdCardAlreadyExistsException ex) {
-            logger.error("Error creating user: ID card already exists: {}", newUser.getIdCard());
+            logger.error("Error al crear el usuario con el numero de cedula: {}", newUser.getIdCard());
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.error(new ApiError("ID_CARD_ALREADY_EXISTS", "ID card " + newUser.getIdCard() + " already exists.", null)));
+                    .body(ApiResponse.error(new ApiError("Numero de cedula ya existente", "Numero de cedula: " + newUser.getIdCard() + " ya existe.", null)));
         } catch (PhoneNumberAlreadyExistsException ex) {
-            logger.error("Error creating user: Phone number already exists: {}", newUser.getPhoneNumber());
+            logger.error("Error al crear el registro, el numero telefonico ya existe: {}", newUser.getPhoneNumber());
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.error(new ApiError("PHONE_NUMBER_ALREADY_EXISTS", "Phone number " + newUser.getPhoneNumber() + " already exists.", null)));
+                    .body(ApiResponse.error(new ApiError("Numero telefonico ya existente", "El numero de telefono: " + newUser.getPhoneNumber() + " ya existe.", null)));
         } catch (IllegalArgumentException ex) {
-            logger.error("Invalid arguments: {}", ex.getMessage());
+            logger.error("Argumentos invalidos: {}", ex.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error(new ApiError("INVALID_ARGUMENTS", "Invalid arguments: " + ex.getMessage(), null)));
+                    .body(ApiResponse.error(new ApiError("Argumentos Invalidos", "Los siguientes argumentos: " + ex.getMessage(), null)));
         } catch (RuntimeException ex) {
-            logger.error("Unexpected error occurred: {}", ex.getMessage());
+            logger.error("Error inesperado: {}", ex.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error(new ApiError("INTERNAL_SERVER_ERROR", "An unexpected error occurred. Please try again later.", null)));
+                    .body(ApiResponse.error(new ApiError("Error interno en el servidor", "Un error inesperado ha ocurrido. Por favor, intente más tarde.", null)));
         }
     }
 
