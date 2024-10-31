@@ -123,6 +123,7 @@ public class UserService implements UserDetailsService {
                 .email(signUpDto.getEmail())
                 .password(passwordEncoder.encode(signUpDto.getPassword()))
                 .userVerified(false)
+                .status(true) //Al crear un usuario, por defecto estará activo.
                 .activationToken(activationToken)
                 .activationTokenExpiration(tokenExpiration)
                 .createdAt(Instant.now())
