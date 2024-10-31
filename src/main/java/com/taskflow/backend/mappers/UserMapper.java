@@ -7,12 +7,12 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
 import org.mapstruct.Named;
-import org.mapstruct.factory.Mappers;
 
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.dto.ImageDto;
 import com.taskflow.backend.dto.RoleDto;
+import com.taskflow.backend.dto.CreateUserDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
 import com.taskflow.backend.entities.User;
@@ -20,14 +20,14 @@ import com.taskflow.backend.enums.RoleTypeEnum;
 
 @Mapper(componentModel = "spring", uses = {ImageMapper.class, RoleMapper.class})
 public interface UserMapper {
-    //Eliminación de línea debido a que ocasiona error al obtener usuarios por el mapeo de rol y imagen del usuario.
-    // UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
+
+    User signUpToUser(SignUpDto signUpDto);
 
     @Mappings({
         @Mapping(source = "idImage", target = "idImage", qualifiedByName = "mapIdToImage"),
         @Mapping(source = "idRol", target = "role", qualifiedByName = "mapIdToRole"),
     })
-    User signUpToUser(SignUpDto signUpDto);
+    User createUserToUser(CreateUserDto createUserDto);
 
     @Mappings({
         @Mapping(source = "role", target = "role", qualifiedByName = "mapRoleToRole"),
