@@ -16,7 +16,7 @@ body {
 }
 
 .email-header {
-    background-color: #4CAF50;
+    background-color: #2563eb;
     padding: 20px;
     text-align: center;
 }
@@ -47,7 +47,7 @@ body {
     display: inline-block;
     margin: 20px 0;
     padding: 12px 24px;
-    background-color: #4CAF50;
+    background-color: #2563eb;
     color: #ffffff;
     text-decoration: none;
     font-weight: bold;
@@ -57,7 +57,7 @@ body {
 }
 
 .activation-button:hover {
-    background-color: #45a049;
+    background-color: #2563eb;
 }
 
 .email-note {
@@ -76,7 +76,7 @@ body {
 }
 
 .email-footer a {
-    color: #4CAF50;
+    color: #2563eb;
     text-decoration: none;
     margin: 0 5px;
 }
