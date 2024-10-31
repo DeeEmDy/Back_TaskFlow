@@ -14,20 +14,18 @@ import lombok.NoArgsConstructor;
 @Data
 public class SignUpDto {
 
-    private Integer id;
-
     @NotBlank(message = "El nombre no puede estar vacío")
     @Size(min = 3, max = 12, message = "El nombre debe tener entre 3 y 12 caracteres")
     @Pattern(regexp = "^[A-Za-záéíóúÁÉÍÓÚñÑ´ ]+$", message = "El nombre solo puede contener letras y espacios")
     private String name;
 
     @NotBlank(message = "El primer apellido no puede estar vacío")
-    @Size(min = 5, max = 15, message = "El primer apellido debe tener entre 5 y 15 caracteres")
+    @Size(min = 4, max = 15, message = "El primer apellido debe tener entre 4 y 15 caracteres")
     @Pattern(regexp = "^[A-Za-záéíóúÁÉÍÓÚñÑ´ ]+$", message = "El primer apellido solo puede contener letras y espacios")
     private String firstSurname;
 
     @NotBlank(message = "El segundo apellido no puede estar vacío")
-    @Size(min = 5, max = 15, message = "El segundo apellido debe tener entre 5 y 15 caracteres")
+    @Size(min = 4, max = 15, message = "El segundo apellido debe tener entre 4 y 15 caracteres")
     @Pattern(regexp = "^[A-Za-záéíóúÁÉÍÓÚñÑ´ ]+$", message = "El segundo apellido solo puede contener letras y espacios")
     private String secondSurname;
 
@@ -55,8 +53,4 @@ public class SignUpDto {
         message = "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula, una letra minúscula y un número"
     )
     private String password;
-
-    private Boolean userVerified = false;
-
-    private Boolean status = false;
 }

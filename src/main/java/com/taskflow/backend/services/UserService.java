@@ -123,7 +123,6 @@ public class UserService implements UserDetailsService {
                 .email(signUpDto.getEmail())
                 .password(passwordEncoder.encode(signUpDto.getPassword()))
                 .userVerified(false)
-                .status(signUpDto.getStatus() != null && signUpDto.getStatus())
                 .activationToken(activationToken)
                 .activationTokenExpiration(tokenExpiration)
                 .createdAt(Instant.now())
@@ -220,8 +219,6 @@ public class UserService implements UserDetailsService {
         Rol rol = rolRepository.findById(updatedUserDto.getIdRol())
                 .orElseThrow(() -> new RuntimeException("El rol no se ha encontrado"));
         user.setRole(rol); // Asignar el rol actualizado
-
-        user.setStatus(updatedUserDto.getStatus());
         user.setUpdatedAt(Instant.now());
 
         userRepository.save(user);
@@ -309,7 +306,6 @@ public class UserService implements UserDetailsService {
                 .email(signUpDto.getEmail())
                 .password(passwordEncoder.encode(signUpDto.getPassword()))
                 .userVerified(true) //El usuario creado por un Administrador, ya está verificado por defecto.
-                .status(signUpDto.getStatus())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
