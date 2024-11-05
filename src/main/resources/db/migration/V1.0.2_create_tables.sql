@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS public.tbrol (
 CREATE TABLE IF NOT EXISTS public.tbtask (
     idtask SERIAL NOT NULL PRIMARY KEY,
     id_user INTEGER,
-    title VARCHAR(255),
+    title VARCHAR(255) UNIQUE,
     description_task VARCHAR(255),
     created_task_date DATE,
     expiration_task_date DATE,
@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS public.tbuser (
     first_surname VARCHAR(255),
     second_surname VARCHAR(255),
     id_card VARCHAR(255) UNIQUE,
-    phone_number VARCHAR(255),
+    phone_number VARCHAR(255) UNIQUE,
     id_image INTEGER,
     id_rol INTEGER,
     email VARCHAR(255) UNIQUE,
