@@ -7,10 +7,10 @@ INSERT INTO public.tbimage (image_content, status, created_at, updated_at) VALUE
 
 
 INSERT INTO public.tbuser (name, first_surname, second_surname, id_card, phone_number, id_image, id_rol, email, password, user_verified, status, created_at, updated_at, activation_token, activation_token_expiration) VALUES 
-('Dylan', 'Arias', 'Durán', '208190890', '60129860', 1, 1, 'dy-lanarias@hotmail.com', '123DylanAD456.', true, true, now(), now(), '94400530-9cd8-490d-8e74-7222c4752b58', NOW() + INTERVAL '24 hours'),
-('Dixon', 'Góngora', 'Muñoz', '402520449', '66406988', 1, 1, 'dixongongora13@gmail.com', '12345678', true, true, now(), now(), '94400530-9cd8-490d-8e74-7222c4752b58', NOW() + INTERVAL '24 hours'),
-('TestAdmin', 'FSAdmin', 'SSAdmin', '102180325', '85123315', 1, 1, 'testadmin@gmail.com', '12345678', true, true, now(), now(), '94400530-9cd8-490d-8e74-7222c4752b33', NOW() + INTERVAL '24 hours'),
-('TestNormUser', 'FSNormUser', 'SSNormUser', '201210255', '60153312', 1, 1, 'testnormuser@gmail.com', '12345678', true, true, now(), now(), '94400530-9cd8-490d-8e74-7222c475c124', NOW() + INTERVAL '24 hours');
+('Dylan', 'Arias', 'Durán', '208190890', '60129860', 1, 1, 'dy-lanarias@hotmail.com', '$2a$10$LvNG3JVwLLSfEp2083SKBOJBT0p2S0Rj.xjnSexz.DS6y6R1itJy2', true, true, now(), now(), '94400530-9cd8-490d-8e74-7222c4752b58', NOW() + INTERVAL '24 hours'),
+('Dixon', 'Góngora', 'Muñoz', '402520449', '66406988', 1, 1, 'dixongongora13@gmail.com', '$2a$10$yQVU5LXGuCgWB7SrabX2DuetqObtQkhBsjNFxiIVppSccenqM4p2O', true, true, now(), now(), '94400530-9cd8-490d-8e74-7222c4752b58', NOW() + INTERVAL '24 hours'),
+('TestAdmin', 'FSAdmin', 'SSAdmin', '102180325', '85123315', 1, 1, 'testadmin@gmail.com', '$2a$10$J2dOuAe6rLABDZW.r9BYHOz9fQ5FzBaVMWku70QvHKhnj8CPg5Ffq', true, true, now(), now(), '94400530-9cd8-490d-8e74-7222c4752b33', NOW() + INTERVAL '24 hours'),
+('TestNormUser', 'FSNormUser', 'SSNormUser', '201210255', '60153312', 1, 1, 'testnormuser@gmail.com', '$2a$10$4V6WlyzPA4s7TiHUEOK0POd0zjS20I5BpBj3jYDCY7RP9i9MMPD1O', true, true, now(), now(), '94400530-9cd8-490d-8e74-7222c475c124', NOW() + INTERVAL '24 hours');
 
 
 INSERT INTO public.tbtask (id_user, title, description_task, created_task_date, expiration_task_date, progress_task, finalization_task_date, score, status, created_at, updated_at) VALUES
