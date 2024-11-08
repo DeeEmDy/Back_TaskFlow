@@ -1,5 +1,3 @@
-BEGIN;
-
 --Crear tablas.
 CREATE TABLE IF NOT EXISTS public.databasechangelog (
     id VARCHAR(255) NOT NULL,
@@ -130,4 +128,3 @@ CREATE TABLE IF NOT EXISTS public.tbuser_activation (
     PRIMARY KEY (user_id, activation_token_id)
 );
 
-END;

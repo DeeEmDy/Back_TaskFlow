@@ -1,5 +1,3 @@
-BEGIN;
-
 -- Eliminar restricciones de claves foráneas si existen.
 ALTER TABLE IF EXISTS public.tbnotification DROP CONSTRAINT IF EXISTS fk_notification_user;
 ALTER TABLE IF EXISTS public.tbreport DROP CONSTRAINT IF EXISTS fk_report_user;
@@ -20,5 +18,3 @@ DROP TABLE IF EXISTS public.tbrol CASCADE;
 DROP TABLE IF EXISTS public.tbactivationtoken CASCADE;
 DROP TABLE IF EXISTS public.spring_session CASCADE;
 DROP TABLE IF EXISTS public.spring_session_attributes CASCADE;
-
-END;

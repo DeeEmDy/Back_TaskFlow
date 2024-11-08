@@ -1,5 +1,3 @@
-BEGIN;
-
 -- Agregar restricciones de claves foráneas.
 ALTER TABLE public.tbnotification
     ADD CONSTRAINT fk_notification_user FOREIGN KEY (id_user) REFERENCES public.tbuser (id_user);
@@ -22,4 +20,3 @@ ALTER TABLE public.tbuser_activation
 ALTER TABLE public.tbuser_activation
     ADD CONSTRAINT tbuser_activation_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.tbuser (id_user) ON DELETE CASCADE;
 
-END;
