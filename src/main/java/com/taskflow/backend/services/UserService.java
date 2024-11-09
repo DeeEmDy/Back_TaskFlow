@@ -112,6 +112,7 @@ public class UserService implements UserDetailsService {
                 .email(signUpDto.getEmail())
                 .password(passwordEncoder.encode(signUpDto.getPassword()))
                 .userVerified(false)
+                .status(true) //Al crear el registro se asigna el estado activo.
                 .activationToken(activationToken)
                 .activationTokenExpiration(tokenExpiration)
                 .createdAt(Instant.now())
