@@ -14,7 +14,7 @@ spring:
       ddl-auto: none  # Control total con Flyway, sin interferencias de Hibernate
 
   flyway:
-    enabled: true
+    enabled: false #En false para desactivar Flyway y que no se ejecuten las migraciones y seeders por defecto al iniciar la aplicación. | En true para activar Flyway y que se ejecuten las migraciones y seeders por defecto al iniciar la aplicación.
     baseline-on-migrate: true  # Para migraciones en bases de datos ya existentes
     locations: classpath:db/migration  # Asegura la ruta correcta para scripts de migración
     clean-disabled: true  # Desactiva `clean` en producción para mayor seguridad
