@@ -2,8 +2,8 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/bdTaskFlow_PW
-    username: DylanAriasD
-    password: Lolaso0709rico2001.
+    username: postgres
+    password: 12345678
   sql:
     init:
       mode: never
