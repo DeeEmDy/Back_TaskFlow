@@ -85,6 +85,11 @@ public class UserService implements UserDetailsService {
     public UserDto register(@NonNull SignUpDto signUpDto) throws RoleNotFoundException {
         logger.info("Iniciando el registro del usuario: {}", signUpDto);
 
+        // Validación de la contraseña
+        if (!signUpDto.getPassword().equals(signUpDto.getConfirmPassword())) {
+            throw new InvalidCredentialsException("Las contraseñas no coinciden"); // Usando la excepción personalizada
+        }
+
         // Validar campos únicos antes de continuar.
         validateUniqueFields(signUpDto);
 
@@ -106,13 +111,12 @@ public class UserService implements UserDetailsService {
                 .secondSurname(signUpDto.getSecondSurname())
                 .idCard(signUpDto.getIdCard())
                 .phoneNumber(signUpDto.getPhoneNumber())
-                //Enviar el valor de la imagen a null, ya que no se ha asignado una imagen al usuario.
-                .idImage(null)
+                .idImage(null) // Enviar el valor de la imagen a null, ya que no se ha asignado una imagen al usuario.
                 .role(roleNormUser) // Asigna el rol `ROLE_NORMUSER` automáticamente.
                 .email(signUpDto.getEmail())
                 .password(passwordEncoder.encode(signUpDto.getPassword()))
                 .userVerified(false)
-                .status(true) //Al crear el registro se asigna el estado activo.
+                .status(true) // Al crear el registro se asigna el estado activo.
                 .activationToken(activationToken)
                 .activationTokenExpiration(tokenExpiration)
                 .createdAt(Instant.now())

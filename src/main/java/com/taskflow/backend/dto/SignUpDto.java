@@ -46,4 +46,11 @@ public class SignUpDto {
         message = "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula, una letra minúscula y un número"
     )
     private String password;
+
+    @NotBlank(message = "La contraseña no puede estar vacía")
+    @Pattern(
+        regexp = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$",
+        message = "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula, una letra minúscula y un número"
+    )
+    private String confirmPassword;
 }
