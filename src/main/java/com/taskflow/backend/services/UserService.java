@@ -29,6 +29,7 @@ import com.taskflow.backend.enums.RoleTypeEnum;
 import com.taskflow.backend.exception.EmailNotFoundException;
 import com.taskflow.backend.exception.InvalidCredentialsException;
 import com.taskflow.backend.exception.JwtAuthenticationException;
+import com.taskflow.backend.exception.PasswordMismatchException;
 import com.taskflow.backend.exception.PasswordValidationException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.mappers.ImageMapper;
@@ -87,7 +88,7 @@ public class UserService implements UserDetailsService {
 
         // Validación de la contraseña
         if (!signUpDto.getPassword().equals(signUpDto.getConfirmPassword())) {
-            throw new InvalidCredentialsException("Las contraseñas no coinciden"); // Usando la excepción personalizada
+            throw new PasswordMismatchException("Las contraseñas no coinciden"); // Usando la excepción personalizada
         }
 
         // Validar campos únicos antes de continuar.

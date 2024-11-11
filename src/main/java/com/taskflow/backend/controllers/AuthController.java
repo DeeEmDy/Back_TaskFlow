@@ -64,7 +64,12 @@ public class AuthController {
             UserDto newUser = userService.register(signUpDto);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success(newUser, "Usuario registrado con éxito."));
-        } catch (IdCardAlreadyExistsException | PhoneNumberAlreadyExistsException | UserAlreadyExistsException | ImageNotFoundException e) {
+        } catch (PasswordMismatchException e) {  // Manejo específico para PasswordMismatchException
+            logger.warn("Error en la validación de contraseñas: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(new ApiError("PASSWORD_MISMATCH", e.getMessage(), null)));
+        } catch (IdCardAlreadyExistsException | PhoneNumberAlreadyExistsException
+                | UserAlreadyExistsException | ImageNotFoundException e) {
             logger.warn("Error en el registro: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(new ApiError("BAD_REQUEST", e.getMessage(), null)));
