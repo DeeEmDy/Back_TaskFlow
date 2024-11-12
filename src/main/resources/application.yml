@@ -2,29 +2,44 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/bdTaskFlow_PW
-    username: DylanAriasD
-    password: Lolaso0709rico2001.
+    username: ${DB_USERNAME:DylanAriasD}  # Uso de variables de entorno para mayor seguridad
+    password: ${DB_PASSWORD:Lolaso0709rico2001.}  # Uso de variables de entorno para mayor seguridad
   sql:
     init:
-      mode: never
+      mode: never  # Evita la inicialización automática de scripts SQL
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: false
+    show-sql: false  # Oculta consultas SQL en los logs (actívalo solo para depuración)
     hibernate:
-      ddl-auto: none
+      ddl-auto: none  # Control total con Flyway, sin interferencias de Hibernate
+
+  flyway:
+    enabled: false #En false para desactivar Flyway y que no se ejecuten las migraciones y seeders por defecto al iniciar la aplicación. | En true para activar Flyway y que se ejecuten las migraciones y seeders por defecto al iniciar la aplicación.
+    baseline-on-migrate: true  # Para migraciones en bases de datos ya existentes
+    locations: classpath:db/migration  # Asegura la ruta correcta para scripts de migración
+    clean-disabled: true  # Desactiva `clean` en producción para mayor seguridad
+    validate-on-migrate: true  # Valida la coherencia de las migraciones antes de ejecutarlas
+    outOfOrder: true  # Permite ejecutar migraciones fuera de orden
+
   mail:
     host: smtp.gmail.com
     port: 587
-    username: taskflowpw2024@gmail.com
-    password: ctqrtflygfopqbju
+    username: ${MAIL_USERNAME:taskflowpw2024@gmail.com}  # Variable de entorno para credenciales de correo
+    password: ${MAIL_PASSWORD:ctqrtflygfopqbju}  # Variable de entorno para credenciales de correo
     properties:
       mail:
         smtp:
           auth: true
           starttls:
-            enable: true
+            enable: true  # Asegura la conexión TLS
+
   security:
     jwt:
       token:
-        secret-key: your-256-bit-secret
-        expiration: 3600000 # 1 hora en milisegundos
+        secret-key: ${JWT_SECRET_KEY:your-256-bit-secret}  # Variable de entorno para la clave secreta de JWT
+        expiration: 3600000  # Expiración de 1 hora en milisegundos
+
+logging:
+  level:
+    org.flywaydb: DEBUG  # Nivel de logging para Flyway (desactivar en producción)
+    org.springframework.orm.jpa: DEBUG  # Nivel de logging para JPA (desactivar en producción)

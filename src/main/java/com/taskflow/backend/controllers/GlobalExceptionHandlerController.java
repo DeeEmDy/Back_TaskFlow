@@ -13,13 +13,14 @@ import com.taskflow.backend.dto.ApiError;
 import com.taskflow.backend.dto.ApiResponse;
 import com.taskflow.backend.dto.ValidationError;
 import com.taskflow.backend.exception.IdCardAlreadyExistsException;
+import com.taskflow.backend.exception.InvalidCredentialsException;
+import com.taskflow.backend.exception.PasswordMismatchException;
+import com.taskflow.backend.exception.PasswordValidationException;
 import com.taskflow.backend.exception.PhoneNumberAlreadyExistsException;
-import com.taskflow.backend.exception.UserAlreadyExistsException;
-import com.taskflow.backend.exception.UserIdNotFoundException;
 import com.taskflow.backend.exception.TaskExceptions.TaskNotFoundException;
 import com.taskflow.backend.exception.TaskExceptions.TaskTitleAlreadyExist;
-import com.taskflow.backend.exception.PasswordValidationException;
-import com.taskflow.backend.exception.PasswordMismatchException;
+import com.taskflow.backend.exception.UserAlreadyExistsException;
+import com.taskflow.backend.exception.UserIdNotFoundException;
 
 @ControllerAdvice
 public class GlobalExceptionHandlerController {
@@ -82,5 +83,12 @@ public class GlobalExceptionHandlerController {
         ApiError apiError = new ApiError("TASK_TITLE_ALREADY_EXISTS", ex.getMessage(), null);
         return new ResponseEntity<>(ApiResponse.error(apiError), HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidCredentialsException(InvalidCredentialsException ex) {
+        ApiError apiError = new ApiError("INVALID_CREDENTIALS", ex.getMessage(), null);
+        return new ResponseEntity<>(ApiResponse.error(apiError), HttpStatus.BAD_REQUEST);
+    }
+
 
 }

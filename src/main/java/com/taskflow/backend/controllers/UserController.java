@@ -22,12 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.taskflow.backend.dto.ApiError;
 import com.taskflow.backend.dto.ApiResponse;
-import com.taskflow.backend.dto.SignUpDto;
+import com.taskflow.backend.dto.CreateUserDto;
 import com.taskflow.backend.dto.UpdatePasswordDto;
 import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.exception.IdCardAlreadyExistsException;
+import com.taskflow.backend.exception.ImageNotFoundException;
 import com.taskflow.backend.exception.PasswordValidationException;
 import com.taskflow.backend.exception.PhoneNumberAlreadyExistsException;
+import com.taskflow.backend.exception.RoleNotFoundException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.services.UserService;
 
@@ -44,33 +46,33 @@ public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<UserDto>> createUser(@Valid @RequestBody SignUpDto newUser) {
-        logger.info("Iniciando con el registro de usuario: {}", newUser.getEmail());
+    public ResponseEntity<ApiResponse<UserDto>> createUser(@Valid @RequestBody CreateUserDto newUser) {
+        logger.info("Iniciando con la creación del usuario: {}", newUser.getEmail());
         try {
             UserDto user = userService.createUser(newUser);
             logger.info("Usuario creado con el email: {}", newUser.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success(user, "Usuario creado exitosamente"));
-        } catch (UserAlreadyExistsException ex) {
-            logger.error("Error al crear el usuario, ya existe un usuario con el email: {}", newUser.getEmail());
+        } catch (IdCardAlreadyExistsException | PhoneNumberAlreadyExistsException | UserAlreadyExistsException e) {
+            logger.warn("Error en la creación: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.error(new ApiError("USUARIO YA EXISTENTE", "Usuario con el email " + newUser.getEmail() + " ya existe.", null)));
-        } catch (IdCardAlreadyExistsException ex) {
-            logger.error("Error al crear el usuario con el numero de cedula: {}", newUser.getIdCard());
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.error(new ApiError("Numero de cedula ya existente", "Numero de cedula: " + newUser.getIdCard() + " ya existe.", null)));
-        } catch (PhoneNumberAlreadyExistsException ex) {
-            logger.error("Error al crear el registro, el numero telefonico ya existe: {}", newUser.getPhoneNumber());
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.error(new ApiError("Numero telefonico ya existente", "El numero de telefono: " + newUser.getPhoneNumber() + " ya existe.", null)));
-        } catch (IllegalArgumentException ex) {
-            logger.error("Argumentos invalidos: {}", ex.getMessage());
+                    .body(ApiResponse.error(new ApiError("CONFLICT", e.getMessage(), null)));
+        } catch (ImageNotFoundException e) {
+            logger.warn("Error en la creación: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error(new ApiError("Argumentos Invalidos", "Los siguientes argumentos: " + ex.getMessage(), null)));
-        } catch (RuntimeException ex) {
-            logger.error("Error inesperado: {}", ex.getMessage());
+                    .body(ApiResponse.error(new ApiError("BAD_REQUEST", e.getMessage(), null)));
+        } catch (RoleNotFoundException e) {
+            logger.warn("Error en la creación: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(new ApiError("NOT_FOUND", e.getMessage(), null)));
+        } catch (IllegalArgumentException e) {
+            logger.error("Argumentos inválidos: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(new ApiError("BAD_REQUEST", e.getMessage(), null)));
+        } catch (RuntimeException e) {
+            logger.error("Error inesperado: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error(new ApiError("Error interno en el servidor", "Un error inesperado ha ocurrido. Por favor, intente más tarde.", null)));
+                    .body(ApiResponse.error(new ApiError("INTERNAL_SERVER_ERROR", "Error interno del servidor", null)));
         }
     }
 
@@ -106,16 +108,32 @@ public class UserController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<ApiResponse<UserDto>> updateUser(@PathVariable Integer id, @Valid @RequestBody SignUpDto updatedUser) {
+    public ResponseEntity<ApiResponse<UserDto>> updateUser(@PathVariable Integer id, @Valid @RequestBody CreateUserDto updatedUser) {
         logger.info("Iniciando a actualizar el registro de usuario con el ID: {}", id);
         try {
             UserDto user = userService.update(id, updatedUser);
             logger.info("Usuario actualizado con el ID: {}", id);
             return ResponseEntity.ok(ApiResponse.success(user, "Usuario actualizado con éxito"));
-        } catch (RuntimeException ex) {
-            logger.warn("Ha ocurrido un error al actualizar el usuario con el ID: {}", id);
+        } catch (UserAlreadyExistsException e) {
+            logger.warn("Error al actualizar: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.error(new ApiError("CONFLICT", e.getMessage(), null)));
+        } catch (ImageNotFoundException e) {
+            logger.warn("Error en la actualización: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(new ApiError("BAD_REQUEST", e.getMessage(), null)));
+        } catch (RoleNotFoundException e) {
+            logger.warn("Error en la actualización: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(new ApiError("USUARIO NO ENCONTRADO", "Ha ocurrido un error al actualizar al usuario: " + ex.getMessage(), null)));
+                    .body(ApiResponse.error(new ApiError("NOT_FOUND", e.getMessage(), null)));
+        } catch (IllegalArgumentException e) {
+            logger.error("Argumentos inválidos: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(new ApiError("BAD_REQUEST", e.getMessage(), null)));
+        } catch (RuntimeException e) {
+            logger.error("Error inesperado: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(new ApiError("INTERNAL_SERVER_ERROR", "Error interno del servidor", null)));
         }
     }
 
