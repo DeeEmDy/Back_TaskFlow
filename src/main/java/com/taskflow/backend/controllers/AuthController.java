@@ -64,7 +64,12 @@ public class AuthController {
             UserDto newUser = userService.register(signUpDto);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success(newUser, "Usuario registrado con éxito."));
-        } catch (IdCardAlreadyExistsException | PhoneNumberAlreadyExistsException | UserAlreadyExistsException | ImageNotFoundException e) {
+        } catch (PasswordMismatchException e) {  // Manejo específico para PasswordMismatchException
+            logger.warn("Error en la validación de contraseñas: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(new ApiError("PASSWORD_MISMATCH", e.getMessage(), null)));
+        } catch (IdCardAlreadyExistsException | PhoneNumberAlreadyExistsException
+                | UserAlreadyExistsException | ImageNotFoundException e) {
             logger.warn("Error en el registro: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(new ApiError("BAD_REQUEST", e.getMessage(), null)));
@@ -141,12 +146,14 @@ public class AuthController {
     @DeleteMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
         // Verificar si el encabezado de autorización está presente y es válido
+        logger.info("Authorization Header: " + authorizationHeader);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error(new ApiError("UNAUTHORIZED", "No se ha podido cerrar sesión. Token inválido.", null)));
         }
 
         String token = authorizationHeader.substring(7); // Extrae el token
+        logger.info("Token: " + token);
 
         try {
             // Verificar si el token ya ha sido revocado
@@ -157,6 +164,7 @@ public class AuthController {
 
             // Llama al método para revocar el token
             userAuthProvider.revokeToken(token);
+            logger.info("Token revocado: " + token);
             return ResponseEntity.ok(ApiResponse.success("Se ha cerrado la sesión correctamente", "Sesión cerrada con éxito."));
         } catch (Exception e) {
             logger.error("Error al cerrar sesión: ", e);

@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.taskflow.backend.dto.CreateUserDto;
 import com.taskflow.backend.dto.CredentialsDto;
 import com.taskflow.backend.dto.SignUpDto;
 import com.taskflow.backend.dto.UpdatePasswordDto;
@@ -24,10 +25,11 @@ import com.taskflow.backend.dto.UserDto;
 import com.taskflow.backend.entities.Image;
 import com.taskflow.backend.entities.Rol;
 import com.taskflow.backend.entities.User;
+import com.taskflow.backend.enums.RoleTypeEnum;
 import com.taskflow.backend.exception.EmailNotFoundException;
-import com.taskflow.backend.exception.ImageNotFoundException;
 import com.taskflow.backend.exception.InvalidCredentialsException;
 import com.taskflow.backend.exception.JwtAuthenticationException;
+import com.taskflow.backend.exception.PasswordMismatchException;
 import com.taskflow.backend.exception.PasswordValidationException;
 import com.taskflow.backend.exception.UserAlreadyExistsException;
 import com.taskflow.backend.mappers.ImageMapper;
@@ -84,28 +86,20 @@ public class UserService implements UserDetailsService {
     public UserDto register(@NonNull SignUpDto signUpDto) throws RoleNotFoundException {
         logger.info("Iniciando el registro del usuario: {}", signUpDto);
 
-        // Validación de ID de imagen y rol.
-        if (signUpDto.getIdImage() == null || signUpDto.getIdRol() == null) {
-            logger.error("Los IDs de imagen y rol no pueden ser nulos: idImage={}, idRol={}", signUpDto.getIdImage(), signUpDto.getIdRol());
-            throw new IllegalArgumentException("Los IDs de imagen y rol no pueden ser nulos");
+        // Validación de la contraseña
+        if (!signUpDto.getPassword().equals(signUpDto.getConfirmPassword())) {
+            throw new PasswordMismatchException("Las contraseñas no coinciden"); // Usando la excepción personalizada
         }
 
-        // Obtener la imagen.
-        Image image = imageRepository.findById(signUpDto.getIdImage())
-                .orElseThrow(() -> {
-                    logger.error("Imagen no encontrada con ID: {}", signUpDto.getIdImage());
-                    return new ImageNotFoundException("La imagen no se ha encontrado");
-                });
-
-        // Obtener el rol basado en el ID del rol proporcionado.
-        Rol rol = rolRepository.findById(signUpDto.getIdRol())
-                .orElseThrow(() -> {
-                    logger.error("Rol no encontrado con ID: {}", signUpDto.getIdRol());
-                    return new RoleNotFoundException("El rol no se ha encontrado");
-                });
-
         // Validar campos únicos antes de continuar.
-        validateUniqueFields(signUpDto); // Asegúrate de que esto lance las excepciones correctas
+        validateUniqueFields(signUpDto);
+
+        // Obtener el rol `ROLE_NORMUSER`.
+        Rol roleNormUser = rolRepository.findByRolName(RoleTypeEnum.ROLE_NORMUSER)
+                .orElseThrow(() -> {
+                    logger.error("Rol `ROLE_NORMUSER` no encontrado en la base de datos");
+                    return new RoleNotFoundException("El rol `ROLE_NORMUSER` no se ha encontrado");
+                });
 
         // Generar el token de activación y la fecha de expiración.
         String activationToken = tokenService.generateActivationToken();
@@ -118,11 +112,12 @@ public class UserService implements UserDetailsService {
                 .secondSurname(signUpDto.getSecondSurname())
                 .idCard(signUpDto.getIdCard())
                 .phoneNumber(signUpDto.getPhoneNumber())
-                .idImage(image)
-                .role(rol)
+                .idImage(null) // Enviar el valor de la imagen a null, ya que no se ha asignado una imagen al usuario.
+                .role(roleNormUser) // Asigna el rol `ROLE_NORMUSER` automáticamente.
                 .email(signUpDto.getEmail())
                 .password(passwordEncoder.encode(signUpDto.getPassword()))
                 .userVerified(false)
+                .status(true) // Al crear el registro se asigna el estado activo.
                 .activationToken(activationToken)
                 .activationTokenExpiration(tokenExpiration)
                 .createdAt(Instant.now())
@@ -168,24 +163,23 @@ public class UserService implements UserDetailsService {
 
     public boolean updatePassword(UpdatePasswordDto updatePasswordDto) {
         logger.info("Iniciando actualización de contraseña para el usuario: {}", updatePasswordDto.getEmail());
-    
+
         // Buscar al usuario
         User user = userRepository.findByEmail(updatePasswordDto.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + updatePasswordDto.getEmail()));
-    
+
         // Verificar si las contraseñas coinciden
         if (!updatePasswordDto.getNewPassword().equals(updatePasswordDto.getRepeatNewPassword())) {
             throw new PasswordValidationException("Las contraseñas no coinciden", "PASSWORD_MISMATCH");
         }
-    
+
         // Actualizar la contraseña
         user.setPassword(passwordEncoder.encode(updatePasswordDto.getNewPassword()));
         userRepository.save(user);
-    
+
         logger.info("Contraseña actualizada exitosamente para el usuario: {}", updatePasswordDto.getEmail());
         return true;
     }
-    
 
     public List<UserDto> findAll() {
         logger.info("Usuarios obtenidos: {}", userRepository.findAll());
@@ -200,31 +194,54 @@ public class UserService implements UserDetailsService {
         return mapToUserDto(user);
     }
 
-    public UserDto update(Integer id, SignUpDto updatedUserDto) {
+    @Transactional
+    public UserDto update(Integer id, CreateUserDto updatedUserDto) {
+        logger.info("Iniciando la actualización del usuario con ID: {}", id);
+
+        // Buscar el usuario por ID
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("No se ha encontrado un usuario con ese ID: " + id));
 
-        // Verificación de campos únicos
+        // Validación de ID de imagen y rol
+        if (updatedUserDto.getIdImage() == null || updatedUserDto.getIdRol() == null) {
+            logger.error("Los IDs de imagen y rol no pueden ser nulos: idImage={}, idRol={}", updatedUserDto.getIdImage(), updatedUserDto.getIdRol());
+            throw new IllegalArgumentException("Los IDs de imagen y rol no pueden ser nulos");
+        }
+
+        // Validar campos únicos antes de continuar
         validateUniqueFieldsForUpdate(user, updatedUserDto);
 
-        // Actualización de campos del usuario
+        // Obtener la imagen
+        Image image = imageRepository.findById(updatedUserDto.getIdImage())
+                .orElseThrow(() -> {
+                    logger.error("Imagen no encontrada con ID: {}", updatedUserDto.getIdImage());
+                    return new RuntimeException("La imagen no se ha encontrado");
+                });
+
+        // Obtener el rol
+        Rol rol = rolRepository.findById(updatedUserDto.getIdRol())
+                .orElseThrow(() -> {
+                    logger.error("Rol no encontrado con ID: {}", updatedUserDto.getIdRol());
+                    return new RuntimeException("El rol no se ha encontrado");
+                });
+
+        // Actualizar los campos del usuario
         user.setName(updatedUserDto.getName());
         user.setFirstSurname(updatedUserDto.getFirstSurname());
         user.setSecondSurname(updatedUserDto.getSecondSurname());
         user.setIdCard(updatedUserDto.getIdCard());
         user.setPhoneNumber(updatedUserDto.getPhoneNumber());
+        user.setIdImage(image);
+        user.setRole(rol);
         user.setEmail(updatedUserDto.getEmail());
-
-        // Cambia aquí para usar idRol
-        Rol rol = rolRepository.findById(updatedUserDto.getIdRol())
-                .orElseThrow(() -> new RuntimeException("El rol no se ha encontrado"));
-        user.setRole(rol); // Asignar el rol actualizado
         user.setUpdatedAt(Instant.now());
 
-        userRepository.save(user);
-        logger.info("Usuario actualizado: {}", user);
+        // Guardar el usuario actualizado en la base de datos
+        User updatedUser = userRepository.save(user);
+        logger.info("Usuario actualizado: {}", updatedUser);
 
-        return mapToUserDto(user);
+        // Mapear el usuario actualizado a UserDto y retornarlo
+        return mapToUserDto(updatedUser);
     }
 
     private UserDto mapToUserDto(User user) {
@@ -257,14 +274,31 @@ public class UserService implements UserDetailsService {
         }
     }
 
-    private void validateUniqueFieldsForUpdate(User user, SignUpDto updatedUserDto) {
-        if (!user.getEmail().equals(updatedUserDto.getEmail()) && userRepository.existsByEmail(updatedUserDto.getEmail())) {
+    // Método para validar campos únicos para crear un usuario con createUserDto.
+    private void validateUniqueFieldsForCreateUser(CreateUserDto createUserDto) {
+        if (userRepository.existsByEmail(createUserDto.getEmail())) {
+            throw new UserAlreadyExistsException("Ya existe un usuario con ese correo electrónico asignado: " + createUserDto.getEmail());
+        }
+        if (userRepository.existsByIdCard(createUserDto.getIdCard())) {
+            throw new UserAlreadyExistsException("Ya existe un usuario con esa cédula asignada: " + createUserDto.getIdCard());
+        }
+        if (userRepository.existsByPhoneNumber(createUserDto.getPhoneNumber())) {
+            throw new UserAlreadyExistsException("Ya existe un usuario con ese número de teléfono asignado: " + createUserDto.getPhoneNumber());
+        }
+    }
+
+    // Método para validar campos únicos al actualizar un usuario con CreateUserDto.
+    private void validateUniqueFieldsForUpdate(User existingUser, CreateUserDto updatedUserDto) {
+        if (!existingUser.getEmail().equals(updatedUserDto.getEmail())
+                && userRepository.existsByEmail(updatedUserDto.getEmail())) {
             throw new UserAlreadyExistsException("Ya existe un usuario con ese correo electrónico asignado: " + updatedUserDto.getEmail());
         }
-        if (!user.getIdCard().equals(updatedUserDto.getIdCard()) && userRepository.existsByIdCard(updatedUserDto.getIdCard())) {
+        if (!existingUser.getIdCard().equals(updatedUserDto.getIdCard())
+                && userRepository.existsByIdCard(updatedUserDto.getIdCard())) {
             throw new UserAlreadyExistsException("Ya existe un usuario con esa cédula asignada: " + updatedUserDto.getIdCard());
         }
-        if (!user.getPhoneNumber().equals(updatedUserDto.getPhoneNumber()) && userRepository.existsByPhoneNumber(updatedUserDto.getPhoneNumber())) {
+        if (!existingUser.getPhoneNumber().equals(updatedUserDto.getPhoneNumber())
+                && userRepository.existsByPhoneNumber(updatedUserDto.getPhoneNumber())) {
             throw new UserAlreadyExistsException("Ya existe un usuario con ese número de teléfono asignado: " + updatedUserDto.getPhoneNumber());
         }
     }
@@ -277,35 +311,45 @@ public class UserService implements UserDetailsService {
         logger.info("Usuario eliminado: {}", user);
     }
 
-    //Método para crear un nuevo usuario.
     @Transactional
-    public UserDto createUser(@NonNull SignUpDto signUpDto) {
-        if (signUpDto.getIdImage() == null) {
-            throw new IllegalArgumentException("El ID de la imagen no puede ser nulo");
+    public UserDto createUser(@NonNull CreateUserDto createUserDto) {
+        logger.info("Iniciando la creación del usuario: {}", createUserDto);
+
+        // Validación de ID de imagen y rol.
+        if (createUserDto.getIdImage() == null || createUserDto.getIdRol() == null) {
+            logger.error("Los IDs de imagen y rol no pueden ser nulos: idImage={}, idRol={}", createUserDto.getIdImage(), createUserDto.getIdRol());
+            throw new IllegalArgumentException("Los IDs de imagen y rol no pueden ser nulos");
         }
 
-        // Validar campos únicos primero
-        validateUniqueFields(signUpDto);
+        // Validar campos únicos antes de continuar
+        validateUniqueFieldsForCreateUser(createUserDto);
 
-        Image image = imageRepository.findById(signUpDto.getIdImage())
-                .orElseThrow(() -> new RuntimeException("La imagen no se ha encontrado"));
+        // Obtener la imagen
+        Image image = imageRepository.findById(createUserDto.getIdImage())
+                .orElseThrow(() -> {
+                    logger.error("Imagen no encontrada con ID: {}", createUserDto.getIdImage());
+                    return new RuntimeException("La imagen no se ha encontrado");
+                });
 
-        // Buscar el rol
-        Rol rol = rolRepository.findById(signUpDto.getIdRol())
-                .orElseThrow(() -> new RuntimeException("El rol no se ha encontrado"));
+        // Obtener el rol
+        Rol rol = rolRepository.findById(createUserDto.getIdRol())
+                .orElseThrow(() -> {
+                    logger.error("Rol no encontrado con ID: {}", createUserDto.getIdRol());
+                    return new RuntimeException("El rol no se ha encontrado");
+                });
 
         // Crear el nuevo usuario con el rol especificado
         User newUser = User.builder()
-                .name(signUpDto.getName())
-                .firstSurname(signUpDto.getFirstSurname())
-                .secondSurname(signUpDto.getSecondSurname())
-                .idCard(signUpDto.getIdCard())
-                .phoneNumber(signUpDto.getPhoneNumber())
+                .name(createUserDto.getName())
+                .firstSurname(createUserDto.getFirstSurname())
+                .secondSurname(createUserDto.getSecondSurname())
+                .idCard(createUserDto.getIdCard())
+                .phoneNumber(createUserDto.getPhoneNumber())
                 .idImage(image)
-                .role(rol) // Asignar el rol especificado
-                .email(signUpDto.getEmail())
-                .password(passwordEncoder.encode(signUpDto.getPassword()))
-                .userVerified(true) //El usuario creado por un Administrador, ya está verificado por defecto.
+                .role(rol)
+                .email(createUserDto.getEmail())
+                .password(passwordEncoder.encode(createUserDto.getPassword()))
+                .userVerified(true) // El usuario creado por un Administrador, ya está verificado
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -316,22 +360,30 @@ public class UserService implements UserDetailsService {
         User savedUser = userRepository.save(newUser);
         logger.info("Usuario guardado en la base de datos: {}", savedUser);
 
-        // Enviar email de activación
+        // Generar el token de activación y la fecha de expiración
         String activationToken = tokenService.generateActivationToken();
         savedUser.setActivationToken(activationToken);
         savedUser.setActivationTokenExpiration(tokenService.getTokenExpiration());
 
+        // Actualizar el usuario con el token de activación
         userRepository.save(savedUser);
         String activationLink = "http://localhost:8080/auth/activate?token=" + activationToken;
         emailService.sendActivationEmail(savedUser.getEmail(), activationLink);
         logger.info("Correo de activación enviado a: {}", savedUser.getEmail());
 
+        // Mapear el usuario guardado a UserDto y retornarlo
         return mapToUserDto(savedUser);
     }
 
     public boolean isUserAuthenticated(String email) {
         UserDto user = findByEmail(email);
         return user != null && user.getUserVerified();
+    }
+
+    //Método para buscar un usuario por el email utilizando     Optional<User> findByEmail(String email);
+    public User findByEmailOptional(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + email));
     }
 
 }
