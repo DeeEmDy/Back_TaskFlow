@@ -146,12 +146,14 @@ public class AuthController {
     @DeleteMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
         // Verificar si el encabezado de autorización está presente y es válido
+        logger.info("Authorization Header: " + authorizationHeader);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error(new ApiError("UNAUTHORIZED", "No se ha podido cerrar sesión. Token inválido.", null)));
         }
 
         String token = authorizationHeader.substring(7); // Extrae el token
+        logger.info("Token: " + token);
 
         try {
             // Verificar si el token ya ha sido revocado
@@ -162,6 +164,7 @@ public class AuthController {
 
             // Llama al método para revocar el token
             userAuthProvider.revokeToken(token);
+            logger.info("Token revocado: " + token);
             return ResponseEntity.ok(ApiResponse.success("Se ha cerrado la sesión correctamente", "Sesión cerrada con éxito."));
         } catch (Exception e) {
             logger.error("Error al cerrar sesión: ", e);

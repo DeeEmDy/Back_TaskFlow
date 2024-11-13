@@ -35,7 +35,17 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 // Configuración CORS (Permite solicitudes de orígenes cruzados)
-                .cors(cors -> cors.configurationSource(request -> new CorsConfiguration().applyPermitDefaultValues()))
+                .cors(cors -> {
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.setAllowCredentials(true);
+                    config.addAllowedOrigin("http://localhost:5173"); // Asegúrate de agregar los orígenes necesarios
+                    config.addAllowedHeader("*");
+                    config.addAllowedMethod("GET");
+                    config.addAllowedMethod("POST");
+                    config.addAllowedMethod("PUT");
+                    config.addAllowedMethod("DELETE");
+                    cors.configurationSource(request -> config);
+                })
                 
                 // Desactivación de CSRF (para permitir el uso de JWT)
                 .csrf(AbstractHttpConfigurer::disable)
@@ -58,7 +68,7 @@ public class SecurityConfig {
                         // Rutas privadas: accesibles solo para usuarios con los roles correspondientes
                         .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN") // Solo para administradores
                         .requestMatchers("/user/getAll").hasAnyAuthority("ROLE_ADMIN", "ROLE_NORMUSER") // Administradores y usuarios normales pueden obtener todos los usuarios
-                        //Obtener usuario por correo electronico
+                        // Obtener usuario por correo electrónico
                         .requestMatchers(HttpMethod.GET, "/user/getByEmail/{email}").hasAnyAuthority("ROLE_ADMIN", "ROLE_NORMUSER") // Administradores y usuarios normales pueden obtener un usuario por correo electrónico
                         .requestMatchers("/user/create").hasAuthority("ROLE_ADMIN") // Solo administradores pueden crear usuarios
                         .requestMatchers("/user/**").hasAuthority("ROLE_NORMUSER") // Solo usuarios normales pueden acceder a sus propios datos
@@ -69,7 +79,6 @@ public class SecurityConfig {
 
                         // Otras rutas requieren autenticación
                         .anyRequest().authenticated() // Requiere autenticación para cualquier otra ruta
-
                 )
                 // Añade el filtro JWT antes del filtro estándar de autenticación
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
