@@ -380,4 +380,10 @@ public class UserService implements UserDetailsService {
         return user != null && user.getUserVerified();
     }
 
+    //Método para buscar un usuario por el email utilizando     Optional<User> findByEmail(String email);
+    public User findByEmailOptional(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("No se ha encontrado un usuario con ese email: " + email));
+    }
+
 }

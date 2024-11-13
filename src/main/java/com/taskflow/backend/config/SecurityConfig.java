@@ -58,6 +58,8 @@ public class SecurityConfig {
                         // Rutas privadas: accesibles solo para usuarios con los roles correspondientes
                         .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN") // Solo para administradores
                         .requestMatchers("/user/getAll").hasAnyAuthority("ROLE_ADMIN", "ROLE_NORMUSER") // Administradores y usuarios normales pueden obtener todos los usuarios
+                        //Obtener usuario por correo electronico
+                        .requestMatchers(HttpMethod.GET, "/user/getByEmail/{email}").hasAnyAuthority("ROLE_ADMIN", "ROLE_NORMUSER") // Administradores y usuarios normales pueden obtener un usuario por correo electrónico
                         .requestMatchers("/user/create").hasAuthority("ROLE_ADMIN") // Solo administradores pueden crear usuarios
                         .requestMatchers("/user/**").hasAuthority("ROLE_NORMUSER") // Solo usuarios normales pueden acceder a sus propios datos
 

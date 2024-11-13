@@ -189,4 +189,19 @@ public class UserController {
         }
     }
 
+    //Para obtener el usuario mediante el correo electrónico
+    @GetMapping("/getByEmail/{email}")
+    public ResponseEntity<ApiResponse<UserDto>> getUserByEmail(@PathVariable String email) {
+        logger.info("Attempting to get user with email: {}", email);
+        try {
+            UserDto user = userService.findByEmail(email);
+            logger.info("Usuario encontrado con el email: {}", email);
+            return ResponseEntity.ok(ApiResponse.success(user, "Usuario encontrado con el email " + email));
+        } catch (RuntimeException ex) {
+            logger.warn("No se ha encontrado un usuario con el email: {}", email);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(new ApiError("USUARIO NO ENCONTRADO", "El usuario con el email " + email + " no ha sido encontrado.", null)));
+        }
+    }
+
 }
