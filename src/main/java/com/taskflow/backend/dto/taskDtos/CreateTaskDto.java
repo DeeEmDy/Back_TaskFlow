@@ -34,10 +34,13 @@ public class CreateTaskDto {
     @Pattern(regexp = "^[A-Za-záéíóúÁÉÍÓÚñÑ´ ]+$", message = "La descripción solo puede contener letras y espacios")
     private String descriptionTask;
 
+    @NotNull(message = "La fecha de expiración no puede ser nula")
     private LocalDate expirationTaskDate;
 
+    @NotNull(message = "La categoría de la tarea no puede ser nula")
     private ProgressTaskCategoriesEnum progressTask;
 
+    @NotNull(message = "La fecha de finalización no puede ser nula")
     private LocalDate finalizationTaskDate;
 }
 
